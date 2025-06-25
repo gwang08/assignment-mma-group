@@ -8,14 +8,20 @@ const authService = require("../services/authService");
 const authenticate = (allowedUserTypes = []) => {
   return async (req, res, next) => {
     try {
-      // Get token from header
-      const token = req.header("x-auth-token");
+      // Get token from Authorization header
+      const authHeader = req.header("Authorization");
 
-      if (!token) {
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
         return res
           .status(401)
-          .json({ success: false, message: "No token, authorization denied" });
+          .json({
+            success: false,
+            message: "No bearer token, authorization denied",
+          });
       }
+
+      // Extract the token (remove "Bearer " prefix)
+      const token = authHeader.split(" ")[1];
 
       try {
         // Verify token
