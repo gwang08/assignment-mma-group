@@ -21,7 +21,7 @@ router.use((req, res, next) => authenticateAdmin(req, res, next));
  *     description: Create a new student account (admin only)
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -53,7 +53,7 @@ router.post("/students", adminController.createStudent);
  *     description: Create a new medical staff account (admin only)
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -87,7 +87,7 @@ router.post("/medical-staff", adminController.createMedicalStaff);
  *     description: Create a relationship between a student and parent (admin only)
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -137,7 +137,7 @@ router.post(
  *     description: Retrieve a list of all students
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of students
@@ -156,7 +156,7 @@ router.get("/students", adminController.getStudents);
  *     description: Retrieve a list of all medical staff members
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of medical staff
@@ -175,7 +175,7 @@ router.get("/medical-staff", adminController.getMedicalStaff);
  *     description: Retrieve a list of all student-parent relationships
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of relationships
@@ -197,7 +197,7 @@ router.get(
  *     description: Update a student's information
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: studentId
@@ -231,7 +231,7 @@ router.put("/students/:studentId", adminController.updateStudent);
  *     description: Update a medical staff member's information
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: staffId
@@ -265,7 +265,7 @@ router.put("/medical-staff/:staffId", adminController.updateMedicalStaff);
  *     description: Mark a student as inactive
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: studentId
@@ -296,7 +296,7 @@ router.put(
  *     description: Mark a medical staff member as inactive
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: staffId
@@ -327,7 +327,7 @@ router.put(
  *     description: Get all pending link requests between parents and students
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of pending link requests
@@ -381,7 +381,7 @@ router.get("/student-link/requests", adminController.getPendingLinkRequests);
  *     description: Process a pending link request by approving or rejecting it
  *     tags: [Admin]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - name: requestId
  *         in: path

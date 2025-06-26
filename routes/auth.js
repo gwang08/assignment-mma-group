@@ -207,7 +207,6 @@ router.post("/login", authController.login);
  *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
- *       - jwtAuth: []
  *     responses:
  *       200:
  *         description: User profile
@@ -257,7 +256,6 @@ router.get("/me", authenticateAny, authController.getCurrentUser);
  *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
- *       - jwtAuth: []
  *     requestBody:
  *       required: true
  *       content:

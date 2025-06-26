@@ -116,7 +116,7 @@ router.get("/", NurseController.getDashboard);
  *     summary: Retrieve all medical events
  *     tags: [Nurse]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of medical events
@@ -138,7 +138,7 @@ router.get("/medical-events", NurseController.getMedicalEvents);
  *     summary: Create a new medical event
  *     tags: [Nurse]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:

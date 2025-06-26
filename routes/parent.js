@@ -117,7 +117,7 @@ const { authenticateParent } = require("../middleware/auth"); // Import the pare
  *     summary: Get authenticated parent profile
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Parent profile data
@@ -135,7 +135,7 @@ router.get("/profile", authenticateParent, parentController.getParentProfile);
  *     summary: Get students related to authenticated parent
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of related students
@@ -155,7 +155,7 @@ router.get(
  *     summary: Get student health profile
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: studentId
@@ -188,7 +188,7 @@ router.get(
  *     summary: Update student health profile
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: studentId
@@ -223,7 +223,7 @@ router.put(
  *     summary: Create medicine request for a student
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: studentId
@@ -286,7 +286,7 @@ router.post(
  *     summary: Get all medicine requests created by authenticated parent
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of medicine requests
@@ -310,7 +310,7 @@ router.get(
  *     summary: Get medicine requests for a specific student
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: studentId
@@ -343,7 +343,7 @@ router.get(
  *     summary: Get medical events for a student
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: studentId
@@ -368,7 +368,7 @@ router.get(
  *     summary: Get campaigns for authenticated parent's students
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of campaigns
@@ -382,7 +382,7 @@ router.get("/campaigns", authenticateParent, parentController.getCampaigns);
  *     summary: Update campaign consent
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: studentId
@@ -431,7 +431,7 @@ router.put(
  *     summary: Get campaign results for a student
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: studentId
@@ -456,7 +456,7 @@ router.get(
  *     summary: Get consultation schedules for authenticated parent
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of consultation schedules
@@ -475,7 +475,7 @@ router.get(
  *     description: Parents can request to be linked with a student with specific fields
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -526,7 +526,7 @@ router.post(
  *     description: Parents can check the status of their student link requests
  *     tags: [Parent]
  *     security:
- *       - jwtAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of link requests

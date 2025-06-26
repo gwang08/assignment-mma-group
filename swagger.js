@@ -11,9 +11,10 @@ const options = {
       description:
         "API documentation for the School Health Management System. This system provides endpoints for parent and school nurse interaction with student health records.\n\n" +
         "## Authentication\n\n" +
-        "All endpoints are protected by JWT authentication. To access them:\n\n" +
+        "All endpoints are protected by JWT Bearer authentication. To access them:\n\n" +
         "1. Login via the `/auth/login` endpoint to get a JWT token\n" +
-        "2. Include the token in the `x-auth-token` header for all subsequent API calls\n\n" +
+        "2. Include the token in the Authorization header using the Bearer scheme for all subsequent API calls\n" +
+        "   Example: `Authorization: Bearer your.jwt.token`\n\n" +
         "## Registration Rules\n\n" +
         "- Only parents can register through the public `/auth/register` endpoint\n" +
         "- All other user accounts (students, medical staff, admins) must be created by an authorized admin\n" +
@@ -54,12 +55,12 @@ const options = {
     ],
     components: {
       securitySchemes: {
-        jwtAuth: {
-          type: "apiKey",
-          in: "header",
-          name: "x-auth-token",
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
           description:
-            "JWT Authorization token in x-auth-token header. This is the required authentication method for all protected endpoints.",
+            "JWT Authorization header using the Bearer scheme. Example: 'Authorization: Bearer {token}'",
         },
       },
       schemas: {
@@ -707,7 +708,7 @@ const options = {
           description:
             "Create a new student account. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
             content: {
@@ -744,9 +745,36 @@ const options = {
                 },
               },
             },
-            400: { $ref: "#/components/responses/ValidationError" },
-            401: { $ref: "#/components/responses/UnauthorizedError" },
-            500: { $ref: "#/components/responses/ServerError" },
+            400: {
+              description: "Validation error",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/ValidationError",
+                  },
+                },
+              },
+            },
+            401: {
+              description: "Unauthorized",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/UnauthorizedError",
+                  },
+                },
+              },
+            },
+            500: {
+              description: "Server error",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/ServerError",
+                  },
+                },
+              },
+            },
           },
         },
         get: {
@@ -754,7 +782,7 @@ const options = {
           description:
             "Retrieve a list of all students. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           responses: {
             200: {
               description: "List of students retrieved successfully",
@@ -789,7 +817,7 @@ const options = {
           description:
             "Create a new medical staff account. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
             content: {
@@ -856,7 +884,7 @@ const options = {
           description:
             "Retrieve a list of all medical staff members. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           responses: {
             200: {
               description: "List of medical staff retrieved successfully",
@@ -891,7 +919,7 @@ const options = {
           description:
             "Create a relationship between a student and parent. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           requestBody: {
             required: true,
             content: {
@@ -997,7 +1025,7 @@ const options = {
           description:
             "Retrieve a list of all student-parent relationships. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           responses: {
             200: {
               description: "List of relationships retrieved successfully",
@@ -1032,7 +1060,7 @@ const options = {
           description:
             "Get all pending link requests between parents and students. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           responses: {
             200: {
               description:
@@ -1068,7 +1096,7 @@ const options = {
           description:
             "Process a pending link request by approving or rejecting it. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           parameters: [
             {
               name: "requestId",
@@ -1155,7 +1183,7 @@ const options = {
           description:
             "Update a student's information. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           parameters: [
             {
               name: "studentId",
@@ -1230,7 +1258,7 @@ const options = {
           description:
             "Mark a student as inactive. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           parameters: [
             {
               name: "studentId",
@@ -1298,7 +1326,7 @@ const options = {
           description:
             "Update a medical staff member's information. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           parameters: [
             {
               name: "staffId",
@@ -1373,7 +1401,7 @@ const options = {
           description:
             "Mark a medical staff member as inactive. Only accessible by administrators.",
           tags: ["Admin"],
-          security: [{ jwtAuth: [] }],
+          security: [{ bearerAuth: [] }],
           parameters: [
             {
               name: "staffId",
@@ -1438,14 +1466,17 @@ const options = {
     },
     security: [
       {
-        jwtAuth: [],
+        bearerAuth: [],
       },
     ],
   },
-  apis: ["./routes/*.js", "./models/*.js"], // Path to the API docs
+  apis: ["./routes/*.js", "./models/*.js"],
 };
 
-// Initialize swagger-jsdoc
+module.exports = {
+  serve: swaggerUi.serve,
+  setup: swaggerUi.setup(options),
+};
 const specs = swaggerJsdoc(options);
 
 // Setup swagger options
