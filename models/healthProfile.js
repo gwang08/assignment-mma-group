@@ -48,7 +48,7 @@ const healthProfileSchema = new mongoose.Schema(
       leftEye: {
         type: Number,
         min: 0,
-        max: 2.0,
+        max: 10.0,
         validate: {
           validator: Number.isFinite,
           message: "{VALUE} is not a valid vision measurement",
@@ -57,7 +57,7 @@ const healthProfileSchema = new mongoose.Schema(
       rightEye: {
         type: Number,
         min: 0,
-        max: 2.0,
+        max: 10.0,
         validate: {
           validator: Number.isFinite,
           message: "{VALUE} is not a valid vision measurement",

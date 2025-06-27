@@ -18,7 +18,20 @@ router.use((req, res, next) => authenticateAdmin(req, res, next));
  * /admin/students:
  *   post:
  *     summary: Create a new student
- *     description: Create a new student account (admin only)
+ *     description: |
+ *       Create a new student account (admin only).
+ *       A unique username will be automatically generated using:
+ *       - Last word of the last name (e.g., "tan" from "Nguyen Phuc Tan")
+ *       - First letter of each other word in the full name (e.g., "n" from "Nguyen" and "p" from "Phuc")
+ *       - Birth date in format ddMMyy (e.g., "250501" for May 25, 2001)
+ *
+ *       Example: For student "Nguyen Phuc Tan" born on May 25, 2001
+ *       Username would be: "tannp250501"
+ *
+ *       If the generated username already exists, an underscore and number will be appended
+ *       (e.g., "tannp250501_1").
+ *
+ *       The initial password will be set to the same as the username.
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -32,10 +45,116 @@ router.use((req, res, next) => authenticateAdmin(req, res, next));
  *               - studentData
  *             properties:
  *               studentData:
- *                 $ref: '#/components/schemas/Student'
+ *                 type: object
+ *                 description: |
+ *                   Student information. Username and password will be auto-generated based on name and birth date.
+ *                   Example: For name "Nguyen Phuc Tan" born on "2001-05-25", the generated username will be "tannp250501"
+ *                 example:
+ *                   {
+ *                     "first_name": "Nguyen",
+ *                     "last_name": "Phuc Tan",
+ *                     "class_name": "10A1",
+ *                     "gender": "male",
+ *                     "dateOfBirth": "2001-05-25"
+ *                   }
+ *                 required:
+ *                   - first_name
+ *                   - last_name
+ *                   - class_name
+ *                   - gender
+ *                   - dateOfBirth
+ *                 properties:
+ *                   first_name:
+ *                     type: string
+ *                     description: Student's first name (will be used to generate username)
+ *                     example: "Nguyen"
+ *                   last_name:
+ *                     type: string
+ *                     description: Student's last name (will be used to generate username)
+ *                     example: "Phuc Tan"
+ *                   class_name:
+ *                     type: string
+ *                     description: Class identifier (e.g., 10A1, 11B2)
+ *                     example: "10A1"
+ *                   gender:
+ *                     type: string
+ *                     enum: [male, female, other]
+ *                     example: "male"
+ *                   dateOfBirth:
+ *                     type: string
+ *                     format: date
+ *                     description: Birth date in YYYY-MM-DD format (will be used to generate username)
+ *                     example: "2001-05-25"
  *     responses:
  *       201:
- *         description: Student created successfully
+ *         description: Student created successfully with auto-generated credentials
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     student:
+ *                       type: object
+ *                       description: |
+ *                         Created student information including auto-generated username.
+ *                         The password is set to the same as the username.
+ *                       example: {
+ *                         "_id": "60d5ecb8b5c9c62b3c7c1b9e",
+ *                         "first_name": "Nguyen",
+ *                         "last_name": "Phuc Tan",
+ *                         "username": "tannp250501",
+ *                         "class_name": "10A1",
+ *                         "gender": "male",
+ *                         "dateOfBirth": "2001-05-25",
+ *                         "createdAt": "2025-06-27T10:30:00.000Z",
+ *                         "updatedAt": "2025-06-27T10:30:00.000Z"
+ *                       }
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                           example: "60d5ecb8b5c9c62b3c7c1b9e"
+ *                         first_name:
+ *                           type: string
+ *                           example: "Nguyen"
+ *                         last_name:
+ *                           type: string
+ *                           example: "Phuc Tan"
+ *                         username:
+ *                           type: string
+ *                           description: Auto-generated username in format lastnameinitials+ddMMyy
+ *                           example: "tannp250501"
+ *                         class_name:
+ *                           type: string
+ *                           example: "10A1"
+ *                         gender:
+ *                           type: string
+ *                           enum: [male, female, other]
+ *                           example: "male"
+ *                         dateOfBirth:
+ *                           type: string
+ *                           format: date
+ *                           example: "2001-05-25"
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-06-27T10:30:00.000Z"
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-06-27T10:30:00.000Z"
+ *                     healthProfileId:
+ *                       type: string
+ *                       description: ID of the created empty health profile
+ *                       example: "60d5ecb8b5c9c62b3c7c1b9f"
+ *                     healthProfileId:
+ *                       type: string
+ *                       example: "60d5ecb8b5c9c62b3c7c1b9f"
  *       400:
  *         description: Missing required fields
  *       401:

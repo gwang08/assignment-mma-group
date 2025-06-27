@@ -167,17 +167,6 @@ const options = {
               type: "object",
               required: ["class_name"],
               properties: {
-                username: {
-                  type: "string",
-                  description: "Optional username for login",
-                  example: "student_emma",
-                },
-                password: {
-                  type: "string",
-                  format: "password",
-                  description: "Optional password for student accounts",
-                  example: "StudentP@ss456",
-                },
                 class_name: {
                   type: "string",
                   description: "Name/ID of student's class",

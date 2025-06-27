@@ -3,10 +3,54 @@ const Parent = require("../models/user/parent");
 const MedicalStaff = require("../models/user/medicalStaff");
 const Admin = require("../models/user/admin");
 const StudentParent = require("../models/user/studentParent");
+const HealthProfile = require("../models/healthProfile");
+const bcrypt = require("bcryptjs");
 
 class AdminController {
   /**
-   * Create a new student
+   * Generate a unique username for a student
+   * Format: lastname + initials + ddMMyy (e.g., tannp250501 for "Nguyen Phuc Tan" born on 25/05/2001)
+   * Takes last word of last name + first letter of each other word in full name + birth date
+   * If duplicate exists, adds a _number suffix
+   */
+  static async generateUniqueUsername(firstName, lastName, dateOfBirth) {
+    // Split full name into parts
+    const firstNameParts = firstName.split(" ");
+    const lastNameParts = lastName.split(" ");
+
+    // Get the last word of the last name
+    const actualLastName = lastNameParts[lastNameParts.length - 1];
+
+    // Get initials from all other words (both from first name and last name)
+    const otherParts = [...lastNameParts.slice(0, -1), ...firstNameParts];
+    const initials = otherParts
+      .map((part) => part.charAt(0).toLowerCase())
+      .join("");
+
+    // Format birth date as ddMMyy
+    const birthDate = new Date(dateOfBirth);
+    const day = birthDate.getDate().toString().padStart(2, "0");
+    const month = (birthDate.getMonth() + 1).toString().padStart(2, "0");
+    const year = birthDate.getFullYear().toString().slice(-2);
+
+    // Create base username: lowercase of lastname + all initials + ddMMyy
+    const baseUsername = `${actualLastName.toLowerCase()}${initials}${day}${month}${year}`;
+    let username = baseUsername;
+    let counter = 1;
+
+    // Keep checking until we find a unique username
+    while (true) {
+      const existingUser = await Student.findOne({ username });
+      if (!existingUser) {
+        return username;
+      }
+      username = `${baseUsername}_${counter}`;
+      counter++;
+    }
+  }
+
+  /**
+   * Create a new student and their health profile
    */
   async createStudent(req, res) {
     try {
@@ -31,13 +75,42 @@ class AdminController {
         });
       }
 
+      // Generate unique username
+      const username = await AdminController.generateUniqueUsername(
+        studentData.first_name,
+        studentData.last_name,
+        studentData.dateOfBirth
+      );
+
+      // Hash the password (using username as default password)
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(username, salt);
+
+      // Add username and password to student data
+      studentData.username = username;
+      studentData.password = hashedPassword;
+
       // Create new student
       const student = new Student(studentData);
       await student.save();
 
+      // Create empty health profile for the student
+      const healthProfile = new HealthProfile({
+        student: student._id,
+        allergies: [],
+        chronicDiseases: [],
+        treatmentHistory: [],
+        vaccinations: [], // Using the correct field name from schema
+      });
+      await healthProfile.save();
+
+      // Return student data along with their health profile ID
       res.status(201).json({
         success: true,
-        data: student,
+        data: {
+          student,
+          healthProfileId: healthProfile._id,
+        },
       });
     } catch (error) {
       console.error("Create student error:", error);
