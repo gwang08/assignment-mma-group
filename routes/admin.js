@@ -152,9 +152,6 @@ router.use((req, res, next) => authenticateAdmin(req, res, next));
  *                       type: string
  *                       description: ID of the created empty health profile
  *                       example: "60d5ecb8b5c9c62b3c7c1b9f"
- *                     healthProfileId:
- *                       type: string
- *                       example: "60d5ecb8b5c9c62b3c7c1b9f"
  *       400:
  *         description: Missing required fields
  *       401:
