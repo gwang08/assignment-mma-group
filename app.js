@@ -4,6 +4,7 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 var mongoose = require("mongoose");
+var cors = require("cors");
 require("dotenv").config();
 
 // Import Swagger configuration
@@ -52,6 +53,16 @@ var adminRouter = require("./routes/admin"); // Add the admin router
 
 var app = express();
 
+// Configure CORS
+app.use(
+  cors({
+    origin: "http://localhost:3001", // Allow requests from frontend
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+    credentials: true, // Allow cookies and credentials
+  })
+);
+
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "jade");
@@ -61,6 +72,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
+
+// Enable CORS
+app.use(cors());
 
 // Setup Swagger
 app.use("/api-docs", swagger.serve, swagger.setup);
