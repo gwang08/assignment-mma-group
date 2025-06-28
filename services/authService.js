@@ -24,9 +24,9 @@ class AuthService {
     isPublicRegistration = true
   ) {
     try {
-      // For public registration, only allow parent registration
-      if (isPublicRegistration && userType !== "parent") {
-        throw new Error("Public registration is only available for parents");
+      // For public registration, only allow parent and student registration
+      if (isPublicRegistration && userType !== "parent" && userType !== "student") {
+        throw new Error("Public registration is only available for parents and students");
       }
 
       // Hash password
@@ -52,12 +52,7 @@ class AuthService {
           newUser = new MedicalStaff(userData);
           break;
         case "student":
-          // Students can only be created by admins, not public registration
-          if (isPublicRegistration) {
-            throw new Error(
-              "Student accounts can only be created by administrators"
-            );
-          }
+          // Students can now be created via public registration
           newUser = new Student(userData);
           break;
         case "admin":
