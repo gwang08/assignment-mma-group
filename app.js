@@ -4,7 +4,12 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 var mongoose = require("mongoose");
+var cors = require("cors");
 require("dotenv").config();
+
+// Import Swagger configuration
+const swagger = require("./swagger");
+const initializeAdmin = require("./utils/initializeAdmin");
 
 // User Models
 const Student = require("./models/user/student");
@@ -27,9 +32,12 @@ const mongoUrl =
 // Mongoose connection
 mongoose
   .connect(mongoUrl)
-  .then((db) => {
+  .then(async (db) => {
     console.log("✅ MongoDB Connection Success");
     console.log(`📁 Connected to database: ${db.connection.name}`);
+
+    // Initialize admin manager
+    await initializeAdmin();
   })
   .catch((err) => {
     console.error("❌ MongoDB Connection Error:", err);
@@ -38,8 +46,22 @@ mongoose
 
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
+var nurseRouter = require("./routes/nurse");
+var parentRouter = require("./routes/parent"); // Add the parent router
+var authRouter = require("./routes/auth"); // Add the auth router for authentication
+var adminRouter = require("./routes/admin"); // Add the admin router
 
 var app = express();
+
+// Configure CORS
+app.use(
+  cors({
+    origin: "http://localhost:3001", // Allow requests from frontend
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+    credentials: true, // Allow cookies and credentials
+  })
+);
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -51,23 +73,39 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+// Enable CORS
+app.use(cors());
+
+// Setup Swagger
+app.use("/api-docs", swagger.serve, swagger.setup);
+
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
+app.use("/nurse", nurseRouter);
+app.use("/parent", parentRouter); // Use the parent router
+app.use("/auth", authRouter); // Add authentication routes
+app.use("/admin", adminRouter); // Use the admin router
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));
 });
 
-// error handler
+// error handler - returns JSON
 app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get("env") === "development" ? err : {};
+  const statusCode = err.status || 500;
+  const errorResponse = {
+    success: false,
+    message: err.message || "Server error",
+  };
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render("error");
+  // Include stack trace in development
+  if (req.app.get("env") === "development") {
+    errorResponse.stack = err.stack;
+  }
+
+  // Return JSON error response
+  res.status(statusCode).json(errorResponse);
 });
 
 module.exports = app;
