@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Base URL cho backend
 // Dùng IP của máy thay vì localhost cho mobile
-const BASE_URL = 'http://172.20.10.2:3000'; // Thay IP này bằng IP thực của máy bạn
+const BASE_URL = 'http://192.168.1.240:3000'; // Thay IP này bằng IP thực của máy bạn
 
 // Tạo instance của axios
 const api = axios.create({
@@ -22,12 +22,32 @@ api.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      console.log('API Request:', config.method?.toUpperCase(), config.url);
     } catch (error) {
       console.error('Error getting token:', error);
     }
     return config;
   },
   (error) => {
+    console.error('Request interceptor error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor để xử lý response và lỗi
+api.interceptors.response.use(
+  (response) => {
+    console.log('API Response:', response.status, response.config.url);
+    return response;
+  },
+  (error) => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data
+    });
     return Promise.reject(error);
   }
 );
@@ -37,9 +57,21 @@ export const authAPI = {
   // Đăng nhập
   login: async (loginData) => {
     try {
+      console.log('Attempting login with:', { ...loginData, password: '***' });
       const response = await api.post('/auth/login', loginData);
+      console.log('Login successful:', response.data);
       return response.data;
     } catch (error) {
+      console.error('Login error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          timeout: error.config?.timeout
+        }
+      });
       throw error.response?.data || { message: 'Network error' };
     }
   },

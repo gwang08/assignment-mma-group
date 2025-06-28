@@ -143,6 +143,31 @@ const sampleData = {
   
   admins: [
     {
+      first_name: "Admin",
+      last_name: "Manager",
+      gender: "other",
+      dateOfBirth: new Date("1990-01-01"),
+      address: {
+        street: "123 Admin Street",
+        city: "Hồ Chí Minh",
+        state: "TP.HCM",
+        postal_code: "70000",
+        country: "Vietnam"
+      },
+      username: "admin",
+      password: "admin",
+      email: "admin.manager@school.edu",
+      phone_number: "123-456-7890",
+      role: "student_manager",
+      permissions: {
+        create_student: true,
+        manage_student_parent: true,
+        create_staff: true,
+        manage_system: false
+      },
+      is_active: true
+    },
+    {
       first_name: "Lê",
       last_name: "Văn Quản",
       gender: "male",
