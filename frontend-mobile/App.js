@@ -60,21 +60,6 @@ function AppNavigator() {
     }
   };
 
-  const getScreenTitle = () => {
-    switch (userType) {
-      case 'student':
-        return 'Học Sinh';
-      case 'parent':
-        return 'Phụ Huynh';
-      case 'nurse':
-        return 'Y Tá';
-      case 'admin':
-        return 'Quản Trị';
-      default:
-        return 'Trang Chủ';
-    }
-  };
-
   return (
     <Stack.Navigator
       screenOptions={{
@@ -90,7 +75,7 @@ function AppNavigator() {
       <Stack.Screen 
         name="Main" 
         component={getScreenComponent()} 
-        options={{ title: getScreenTitle(), headerLeft: null }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

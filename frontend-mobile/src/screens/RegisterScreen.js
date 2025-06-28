@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../context/AuthContext';
 import colors from '../styles/colors';
 
@@ -31,13 +32,44 @@ const RegisterScreen = ({ navigation }) => {
     confirmPassword: '',
     phone_number: '',
     email: '',
-    class_name: '', // Thêm trường class_name cho student
   });
-  const [userType, setUserType] = useState('parent');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const { signUp, isLoading } = useAuth();
+
+  // Danh sách các thành phố/tỉnh Việt Nam
+  const vietnamCities = [
+    'An Giang', 'Bà Rịa - Vũng Tàu', 'Bắc Giang', 'Bắc Kạn', 'Bạc Liêu', 'Bắc Ninh',
+    'Bến Tre', 'Bình Định', 'Bình Dương', 'Bình Phước', 'Bình Thuận', 'Cà Mau',
+    'Cao Bằng', 'Đắk Lắk', 'Đắk Nông', 'Điện Biên', 'Đồng Nai', 'Đồng Tháp',
+    'Gia Lai', 'Hà Giang', 'Hà Nam', 'Hà Tĩnh', 'Hải Dương', 'Hậu Giang',
+    'Hòa Bình', 'Hưng Yên', 'Khánh Hòa', 'Kiên Giang', 'Kon Tum', 'Lai Châu',
+    'Lâm Đồng', 'Lạng Sơn', 'Lào Cai', 'Long An', 'Nam Định', 'Nghệ An',
+    'Ninh Bình', 'Ninh Thuận', 'Phú Thọ', 'Quảng Bình', 'Quảng Nam', 'Quảng Ngãi',
+    'Quảng Ninh', 'Quảng Trị', 'Sóc Trăng', 'Sơn La', 'Tây Ninh', 'Thái Bình',
+    'Thái Nguyên', 'Thanh Hóa', 'Thừa Thiên Huế', 'Tiền Giang', 'Trà Vinh',
+    'Tuyên Quang', 'Vĩnh Long', 'Vĩnh Phúc', 'Yên Bái',
+    'Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ'
+  ];
 
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const onDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || selectedDate;
+    setShowDatePicker(Platform.OS === 'ios');
+    setSelectedDate(currentDate);
+    
+    // Format date to YYYY-MM-DD
+    const formattedDate = currentDate.toISOString().split('T')[0];
+    updateFormData('dateOfBirth', formattedDate);
+  };
+
+  const formatDateForDisplay = (dateString) => {
+    if (!dateString) return 'Chọn ngày sinh';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN');
   };
 
   const validateForm = () => {
@@ -49,29 +81,33 @@ const RegisterScreen = ({ navigation }) => {
       }
     }
 
-    // Validate class_name for students
-    if (userType === 'student' && !formData.class_name.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập lớp học');
+    // Validate date of birth
+    if (!formData.dateOfBirth) {
+      Alert.alert('Lỗi', 'Vui lòng chọn ngày sinh');
       return false;
     }
 
-    // Validate email and phone for parents only
-    if (userType === 'parent') {
-      if (!formData.email.trim()) {
-        Alert.alert('Lỗi', 'Vui lòng nhập email');
-        return false;
-      }
-      if (!formData.phone_number.trim()) {
-        Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại');
-        return false;
-      }
-      
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        Alert.alert('Lỗi', 'Email không hợp lệ');
-        return false;
-      }
+    // Validate city
+    if (!formData.city) {
+      Alert.alert('Lỗi', 'Vui lòng chọn thành phố');
+      return false;
+    }
+
+    // Validate email and phone for parents
+    if (!formData.email.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập email');
+      return false;
+    }
+    if (!formData.phone_number.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại');
+      return false;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      Alert.alert('Lỗi', 'Email không hợp lệ');
+      return false;
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -106,15 +142,11 @@ const RegisterScreen = ({ navigation }) => {
       password: formData.password,
     };
 
-    // Add additional fields based on user type
-    if (userType === 'parent') {
-      userData.phone_number = formData.phone_number;
-      userData.email = formData.email;
-    } else if (userType === 'student') {
-      userData.class_name = formData.class_name;
-    }
+    // Add fields for parent
+    userData.phone_number = formData.phone_number;
+    userData.email = formData.email;
 
-    const result = await signUp(userData, userType);
+    const result = await signUp(userData, 'parent');
     
     if (result.success) {
       Alert.alert(
@@ -134,8 +166,8 @@ const RegisterScreen = ({ navigation }) => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.formContainer}>
-          <Text style={styles.title}>Đăng Ký</Text>
-          <Text style={styles.subtitle}>Tạo tài khoản mới</Text>
+          <Text style={styles.title}>Đăng Ký Phụ Huynh</Text>
+          <Text style={styles.subtitle}>Tạo tài khoản phụ huynh mới</Text>
 
           {/* Thông tin cơ bản */}
           <View style={styles.sectionContainer}>
@@ -176,13 +208,24 @@ const RegisterScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Ngày sinh (YYYY-MM-DD)</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.dateOfBirth}
-                onChangeText={(value) => updateFormData('dateOfBirth', value)}
-                placeholder="1990-01-01"
-              />
+              <Text style={styles.label}>Ngày sinh</Text>
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={[styles.dateText, !formData.dateOfBirth && styles.placeholderText]}>
+                  {formatDateForDisplay(formData.dateOfBirth)}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display="default"
+                  onChange={onDateChange}
+                  maximumDate={new Date()}
+                />
+              )}
             </View>
           </View>
 
@@ -202,12 +245,18 @@ const RegisterScreen = ({ navigation }) => {
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Thành phố</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.city}
-                onChangeText={(value) => updateFormData('city', value)}
-                placeholder="Thành phố"
-              />
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={formData.city}
+                  onValueChange={(value) => updateFormData('city', value)}
+                  style={styles.picker}
+                >
+                  <Picker.Item label="Chọn thành phố" value="" />
+                  {vietnamCities.map((city, index) => (
+                    <Picker.Item key={index} label={city} value={city} />
+                  ))}
+                </Picker>
+              </View>
             </View>
 
             <View style={styles.inputContainer}>
@@ -235,20 +284,6 @@ const RegisterScreen = ({ navigation }) => {
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Thông tin tài khoản</Text>
             
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Loại tài khoản</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={userType}
-                  onValueChange={setUserType}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Phụ huynh" value="parent" />
-                  <Picker.Item label="Học sinh" value="student" />
-                </Picker>
-              </View>
-            </View>
-
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Tên đăng nhập</Text>
               <TextInput
@@ -287,45 +322,29 @@ const RegisterScreen = ({ navigation }) => {
               />
             </View>
 
-            {userType === 'parent' && (
-              <>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Email</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={formData.email}
-                    onChangeText={(value) => updateFormData('email', value)}
-                    placeholder="email@example.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.email}
+                onChangeText={(value) => updateFormData('email', value)}
+                placeholder="email@example.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
 
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Số điện thoại</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={formData.phone_number}
-                    onChangeText={(value) => updateFormData('phone_number', value)}
-                    placeholder="Số điện thoại"
-                    keyboardType="phone-pad"
-                  />
-                </View>
-              </>
-            )}
-
-            {userType === 'student' && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>Lớp học</Text>
-                <TextInput
-                  style={styles.input}
-                  value={formData.class_name}
-                  onChangeText={(value) => updateFormData('class_name', value)}
-                  placeholder="Ví dụ: 6A1, 7B2"
-                />
-              </View>
-            )}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Số điện thoại</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.phone_number}
+                onChangeText={(value) => updateFormData('phone_number', value)}
+                placeholder="Số điện thoại"
+                keyboardType="phone-pad"
+              />
+            </View>
           </View>
 
           <TouchableOpacity
@@ -431,6 +450,21 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     color: colors.text,
+  },
+  dateButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+  },
+  dateText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  placeholderText: {
+    color: colors.textSecondary,
   },
   button: {
     backgroundColor: colors.primary,
