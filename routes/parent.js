@@ -130,6 +130,44 @@ router.get("/profile", authenticateParent, parentController.getParentProfile);
 
 /**
  * @swagger
+ * /parent/dashboard/stats:
+ *   get:
+ *     summary: Get dashboard statistics for authenticated parent
+ *     tags: [Parent]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     linkedStudentsCount:
+ *                       type: number
+ *                     pendingMedicineRequestsCount:
+ *                       type: number
+ *                     newNotificationsCount:
+ *                       type: number
+ *                     upcomingConsultationsCount:
+ *                       type: number
+ *       401:
+ *         description: Not authenticated
+ */
+router.get(
+  "/dashboard/stats",
+  authenticateParent,
+  parentController.getDashboardStats
+);
+
+/**
+ * @swagger
  * /parent/students:
  *   get:
  *     summary: Get students related to authenticated parent

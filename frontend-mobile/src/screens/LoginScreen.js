@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,41 +10,41 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { useAuth } from '../context/AuthContext';
-import colors from '../styles/colors';
+} from "react-native";
+import { useAuth } from "../context/AuthContext";
+import colors from "../styles/colors";
 
 const LoginScreen = ({ navigation }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState('parent');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const { signIn, isLoading } = useAuth();
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
       return;
     }
 
-    const result = await signIn(username, password, userType);
-    
+    const result = await signIn(username, password);
+
     if (result.success) {
       // Navigation sẽ được xử lý tự động bởi AuthContext
     } else {
-      Alert.alert('Đăng nhập thất bại', result.message);
+      Alert.alert("Đăng nhập thất bại", result.message);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.formContainer}>
           <Text style={styles.title}>Đăng Nhập</Text>
-          <Text style={styles.subtitle}>Hệ thống quản lý sức khỏe học sinh</Text>
+          <Text style={styles.subtitle}>
+            Hệ thống quản lý sức khỏe học sinh
+          </Text>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Tên đăng nhập</Text>
@@ -71,7 +71,7 @@ const LoginScreen = ({ navigation }) => {
             />
           </View>
 
-          <View style={styles.inputContainer}>
+          {/* <View style={styles.inputContainer}>
             <Text style={styles.label}>Loại tài khoản</Text>
             <View style={styles.pickerContainer}>
               <Picker
@@ -85,7 +85,7 @@ const LoginScreen = ({ navigation }) => {
                 <Picker.Item label="Quản trị viên" value="admin" />
               </Picker>
             </View>
-          </View>
+          </View> */}
 
           <TouchableOpacity
             style={[styles.button, isLoading && styles.buttonDisabled]}
@@ -101,10 +101,11 @@ const LoginScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.linkButton}
-            onPress={() => navigation.navigate('Register')}
+            onPress={() => navigation.navigate("Register")}
           >
             <Text style={styles.linkText}>
-              Chưa có tài khoản? <Text style={styles.linkTextBold}>Đăng ký ngay</Text>
+              Chưa có tài khoản?{" "}
+              <Text style={styles.linkTextBold}>Đăng ký ngay</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 20,
   },
   formContainer: {
@@ -140,14 +141,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
     marginBottom: 8,
     color: colors.text,
   },
   subtitle: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 30,
     color: colors.textSecondary,
   },
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
     color: colors.text,
   },
@@ -183,7 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 15,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 10,
     shadowColor: colors.shadow,
     shadowOffset: {
@@ -198,20 +199,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   linkButton: {
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   linkText: {
     fontSize: 16,
     color: colors.textSecondary,
   },
   linkTextBold: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.primary,
   },
 });

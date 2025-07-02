@@ -1,17 +1,17 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { StatusBar } from 'expo-status-bar';
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { StatusBar } from "expo-status-bar";
 
-import { AuthProvider, useAuth } from './src/context/AuthContext';
-import LoginScreen from './src/screens/LoginScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
-import StudentScreen from './src/screens/StudentScreen';
-import ParentScreen from './src/screens/ParentScreen';
-import NurseScreen from './src/screens/NurseScreen';
-import AdminScreen from './src/screens/AdminScreen';
-import LoadingScreen from './src/components/LoadingScreen';
-import colors from './src/styles/colors';
+import { AuthProvider, useAuth } from "./src/context/AuthContext";
+import LoginScreen from "./src/screens/LoginScreen";
+import RegisterScreen from "./src/screens/RegisterScreen";
+import StudentScreen from "./src/screens/StudentScreen";
+import ParentNavigator from "./src/navigation/ParentNavigator";
+import NurseScreen from "./src/screens/NurseScreen";
+import AdminScreen from "./src/screens/AdminScreen";
+import LoadingScreen from "./src/components/LoadingScreen";
+import colors from "./src/styles/colors";
 
 const Stack = createStackNavigator();
 
@@ -22,21 +22,21 @@ function AuthNavigator() {
         headerStyle: {
           backgroundColor: colors.primary,
         },
-        headerTintColor: '#fff',
+        headerTintColor: "#fff",
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: "bold",
         },
       }}
     >
-      <Stack.Screen 
-        name="Login" 
-        component={LoginScreen} 
-        options={{ title: 'Đăng Nhập' }}
+      <Stack.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{ title: "Đăng Nhập" }}
       />
-      <Stack.Screen 
-        name="Register" 
-        component={RegisterScreen} 
-        options={{ title: 'Đăng Ký' }}
+      <Stack.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={{ title: "Đăng Ký" }}
       />
     </Stack.Navigator>
   );
@@ -47,16 +47,16 @@ function AppNavigator() {
 
   const getScreenComponent = () => {
     switch (userType) {
-      case 'student':
+      case "student":
         return StudentScreen;
-      case 'parent':
-        return ParentScreen;
-      case 'nurse':
+      case "parent":
+        return ParentNavigator;
+      case "nurse":
         return NurseScreen;
-      case 'admin':
+      case "admin":
         return AdminScreen;
       default:
-        return ParentScreen;
+        return ParentNavigator;
     }
   };
 
@@ -66,15 +66,15 @@ function AppNavigator() {
         headerStyle: {
           backgroundColor: colors.primary,
         },
-        headerTintColor: '#fff',
+        headerTintColor: "#fff",
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: "bold",
         },
       }}
     >
-      <Stack.Screen 
-        name="Main" 
-        component={getScreenComponent()} 
+      <Stack.Screen
+        name="Main"
+        component={getScreenComponent()}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

@@ -553,3 +553,63 @@ exports.getLinkRequests = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+/**
+ * Get dashboard statistics for parent
+ */
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const parentId = req.user._id;
+
+    // Get count of linked students
+    const linkedStudentsCount = await StudentParent.countDocuments({
+      parent: parentId,
+      is_active: true,
+      status: "approved",
+    });
+
+    // Get count of pending medicine requests
+    const studentRelations = await StudentParent.find({
+      parent: parentId,
+      is_active: true,
+      status: "approved",
+    }).select("student");
+
+    const studentIds = studentRelations.map((rel) => rel.student);
+
+    const pendingMedicineRequestsCount = await MedicineRequest.countDocuments({
+      student: { $in: studentIds },
+      status: "pending",
+    });
+
+    // Get count of upcoming consultations (next 30 days)
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+    const upcomingConsultationsCount =
+      await ConsultationSchedule.countDocuments({
+        student: { $in: studentIds },
+        scheduledDate: {
+          $gte: new Date(),
+          $lte: thirtyDaysFromNow,
+        },
+        status: { $in: ["scheduled", "confirmed"] },
+      });
+
+    // For now, we'll use a placeholder for notifications
+    // This would typically come from a notifications collection
+    const newNotificationsCount = 0;
+
+    const stats = {
+      linkedStudentsCount,
+      pendingMedicineRequestsCount,
+      newNotificationsCount,
+      upcomingConsultationsCount,
+    };
+
+    return res.status(200).json({ success: true, data: stats });
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
