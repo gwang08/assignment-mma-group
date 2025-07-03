@@ -38,7 +38,7 @@ class AdminController {
     // Keep checking until we find a unique username
     while (true) {
       // Check the unified User model for any user with this username
-      const existingUser = await User.findOne({ username });
+      const existingUser = await User.findOne({username});
       if (!existingUser) {
         return username;
       }
@@ -52,7 +52,7 @@ class AdminController {
    */
   async createStudent(req, res) {
     try {
-      const { studentData } = req.body;
+      const {studentData} = req.body;
 
       // Validate required fields
       const requiredFields = [
@@ -115,7 +115,7 @@ class AdminController {
       console.error("Create student error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -124,7 +124,7 @@ class AdminController {
    */
   async createMedicalStaff(req, res) {
     try {
-      const { staffData } = req.body;
+      const {staffData} = req.body;
 
       // Validate required fields
       const requiredFields = [
@@ -150,10 +150,19 @@ class AdminController {
       // Create new medical staff using unified User model
       const staffData_unified = {
         ...staffData,
-        role: "medicalStaff",
-        staff_role: staffData.role, // Map the old 'role' field to 'staff_role'
+        role: "medicalStaff", // Always set role to 'medicalStaff' for backend
+        staff_role: staffData.role, // Map frontend 'role' (e.g., 'Nurse') to 'staff_role'
       };
-      delete staffData_unified.role; // Remove the old role field as it's now staff_role
+      // Do not delete staffData_unified.role; it is required by the User model
+
+      // Hash the password before saving
+      if (staffData_unified.password) {
+        const salt = await bcrypt.genSalt(10);
+        staffData_unified.password = await bcrypt.hash(
+          staffData_unified.password,
+          salt
+        );
+      }
 
       const staff = new User(staffData_unified);
       await staff.save();
@@ -176,7 +185,7 @@ class AdminController {
       }
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -193,7 +202,7 @@ class AdminController {
       } = req.body;
 
       // Check if student exists and has the correct role
-      const student = await User.findOne({ _id: studentId, role: "student" });
+      const student = await User.findOne({_id: studentId, role: "student"});
       if (!student) {
         return res.status(404).json({
           success: false,
@@ -202,7 +211,7 @@ class AdminController {
       }
 
       // Check if parent exists and has the correct role
-      const parent = await User.findOne({ _id: parentId, role: "parent" });
+      const parent = await User.findOne({_id: parentId, role: "parent"});
       if (!parent) {
         return res.status(404).json({
           success: false,
@@ -242,7 +251,7 @@ class AdminController {
       console.error("Create student-parent relation error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -251,7 +260,7 @@ class AdminController {
    */
   async getStudents(req, res) {
     try {
-      const students = await User.find({ role: "student" });
+      const students = await User.find({role: "student"});
 
       res.status(200).json({
         success: true,
@@ -261,7 +270,7 @@ class AdminController {
       console.error("Get students error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -270,9 +279,7 @@ class AdminController {
    */
   async getMedicalStaff(req, res) {
     try {
-      const staff = await User.find({ role: "medicalStaff" }).select(
-        "-password"
-      ); // Exclude password field
+      const staff = await User.find({role: "medicalStaff"}).select("-password"); // Exclude password field
 
       res.status(200).json({
         success: true,
@@ -282,7 +289,7 @@ class AdminController {
       console.error("Get medical staff error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -303,7 +310,7 @@ class AdminController {
       console.error("Get student-parent relations error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -312,10 +319,10 @@ class AdminController {
    */
   async getPendingLinkRequests(req, res) {
     try {
-      const requests = await StudentParent.find({ status: "pending" })
+      const requests = await StudentParent.find({status: "pending"})
         .populate("student", "first_name last_name class_name")
         .populate("parent", "first_name last_name email phone_number")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       res.status(200).json({
         success: true,
@@ -325,7 +332,7 @@ class AdminController {
       console.error("Get pending link requests error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -334,8 +341,8 @@ class AdminController {
    */
   async respondToLinkRequest(req, res) {
     try {
-      const { requestId } = req.params;
-      const { status, notes } = req.body;
+      const {requestId} = req.params;
+      const {status, notes} = req.body;
 
       if (!["approved", "rejected"].includes(status)) {
         return res.status(400).json({
@@ -377,7 +384,7 @@ class AdminController {
       console.error("Respond to link request error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -386,10 +393,10 @@ class AdminController {
    */
   async updateStudent(req, res) {
     try {
-      const { studentId } = req.params;
+      const {studentId} = req.params;
       const updateData = req.body;
 
-      const student = await User.findOne({ _id: studentId, role: "student" });
+      const student = await User.findOne({_id: studentId, role: "student"});
       if (!student) {
         return res.status(404).json({
           success: false,
@@ -410,7 +417,7 @@ class AdminController {
       console.error("Update student error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -419,13 +426,13 @@ class AdminController {
    */
   async updateMedicalStaff(req, res) {
     try {
-      const { staffId } = req.params;
+      const {staffId} = req.params;
       const updateData = req.body;
 
       // Remove password from update data if present
       delete updateData.password;
 
-      const staff = await User.findOne({ _id: staffId, role: "medicalStaff" });
+      const staff = await User.findOne({_id: staffId, role: "medicalStaff"});
       if (!staff) {
         return res.status(404).json({
           success: false,
@@ -455,7 +462,7 @@ class AdminController {
       console.error("Update medical staff error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -464,9 +471,9 @@ class AdminController {
    */
   async deactivateStudent(req, res) {
     try {
-      const { studentId } = req.params;
+      const {studentId} = req.params;
 
-      const student = await User.findOne({ _id: studentId, role: "student" });
+      const student = await User.findOne({_id: studentId, role: "student"});
       if (!student) {
         return res.status(404).json({
           success: false,
@@ -485,7 +492,7 @@ class AdminController {
       console.error("Deactivate student error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 
@@ -494,9 +501,9 @@ class AdminController {
    */
   async deactivateMedicalStaff(req, res) {
     try {
-      const { staffId } = req.params;
+      const {staffId} = req.params;
 
-      const staff = await User.findOne({ _id: staffId, role: "medicalStaff" });
+      const staff = await User.findOne({_id: staffId, role: "medicalStaff"});
       if (!staff) {
         return res.status(404).json({
           success: false,
@@ -519,7 +526,7 @@ class AdminController {
       console.error("Deactivate medical staff error:", error);
       res
         .status(500)
-        .json({ success: false, message: error.message || "Server error" });
+        .json({success: false, message: error.message || "Server error"});
     }
   }
 }
