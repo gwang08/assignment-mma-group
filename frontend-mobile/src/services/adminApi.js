@@ -15,10 +15,18 @@ export const adminAPI = {
 
   createStudent: async (studentData) => {
     try {
-      const response = await api.post('/admin/students', { studentData });
+
+      const response = await api.post('/admin/students', studentData);
       return response.data;
     } catch (error) {
       console.error('Create student error:', error);
+      console.error('API Error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url,
+        method: error.config?.method
+      });
       throw error.response?.data || { message: 'Network error' };
     }
   },
@@ -95,6 +103,27 @@ export const adminAPI = {
     }
   },
 
+  // Get/Update profile (alias for getCurrentUser)
+  getProfile: async () => {
+    try {
+      const response = await api.get('/auth/me');
+      return response.data;
+    } catch (error) {
+      console.error('Get profile error:', error);
+      throw error.response?.data || { message: 'Network error' };
+    }
+  },
+
+  updateProfile: async (profileData) => {
+    try {
+      const response = await api.put('/auth/profile', profileData);
+      return response.data;
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error.response?.data || { message: 'Network error' };
+    }
+  },
+
   // Student-Parent Link Requests
   getStudentLinkRequests: async () => {
     try {
@@ -127,12 +156,33 @@ export const adminAPI = {
     }
   },
 
+  // Alias for compatibility
+  getParentStudentRelations: async () => {
+    try {
+      const response = await api.get('/admin/student-parent-relations');
+      return response.data;
+    } catch (error) {
+      console.error('Get parent student relations error:', error);
+      throw error.response?.data || { message: 'Network error' };
+    }
+  },
+
   createStudentParentRelation: async (relationData) => {
     try {
       const response = await api.post('/admin/student-parent-relations', relationData);
       return response.data;
     } catch (error) {
       console.error('Create student parent relation error:', error);
+      throw error.response?.data || { message: 'Network error' };
+    }
+  },
+
+  deleteStudentParentRelation: async (relationId) => {
+    try {
+      const response = await api.delete(`/admin/student-parent-relations/${relationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Delete student parent relation error:', error);
       throw error.response?.data || { message: 'Network error' };
     }
   },

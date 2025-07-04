@@ -10,8 +10,10 @@ export const colors = {
   textSecondary: '#1565c0',  // Medium blue text
   textLight: '#42a5f5',      // Light blue text
   error: '#f44336',          // Red for errors
+  errorLight: '#ffebee',     // Light red background
   success: '#4caf50',        // Green for success
   warning: '#ff9800',        // Orange for warnings
+  info: '#2196f3',           // Blue for info
   border: '#b3e5fc',         // Light blue border
   shadow: '#0277bd',         // Blue shadow
 };

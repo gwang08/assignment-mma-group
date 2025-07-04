@@ -338,12 +338,19 @@ exports.getCampaigns = async (req, res) => {
     });
     const classNames = activeStudents.map((s) => s.class_name);
 
+    // Find campaigns that target these classes or students specifically
     const campaigns = await Campaign.find({
-      $or: [
-        { target_class: { $in: classNames } },
-        { target_class: "All" },
-        { target_students: { $in: studentIds } },
-      ],
+      $and: [
+        { status: { $in: ['active', 'draft'] } }, // Show active and draft campaigns
+        {
+          $or: [
+            { target_classes: { $in: classNames } },
+            { target_classes: "All" },
+            { target_students: { $in: studentIds } },
+            { target_classes: { $size: 0 } }, // Empty array means all classes
+          ]
+        }
+      ]
     }).sort({ date: 1 });
 
     // Get consent status for each campaign
@@ -363,7 +370,7 @@ exports.getCampaigns = async (req, res) => {
                   date: consent.updatedAt,
                 }
               : {
-                  student: await Student.findById(
+                  student: await User.findById(
                     studentId,
                     "first_name last_name class_name"
                   ),
@@ -526,13 +533,13 @@ exports.requestStudentLink = async (req, res) => {
       });
     }
 
-    // Find student by ID
-    const student = await User.findOne({ _id: studentId, role: "student" });
+    // Find student by student_id
+    const student = await User.findOne({ student_id: studentId, role: "student" });
 
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: "Student not found",
+        message: "Student not found with this student ID",
       });
     }
 
