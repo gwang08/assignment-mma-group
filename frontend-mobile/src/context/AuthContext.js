@@ -93,15 +93,16 @@ export const AuthProvider = ({ children }) => {
 
   // Auth methods
   const authMethods = {
-    signIn: async (username, password, userType) => {
+    signIn: async (username, password) => {
       try {
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: true });
         
-        const loginData = { username, password, userType };
-        const response = await authAPI.login(loginData);
+        // API mới chỉ cần username và password, backend tự nhận biết role
+        const response = await authAPI.login(username, password);
         
         if (response.success) {
           const { token, user } = response.data;
+          const userType = user.role; // Lấy role từ user data trả về
           
           // Lưu vào AsyncStorage
           await storageAPI.saveUserData(token, user, userType);
@@ -127,12 +128,12 @@ export const AuthProvider = ({ children }) => {
       }
     },
 
-    signUp: async (userData, userType) => {
+    signUp: async (userData) => {
       try {
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: true });
         
-        const registerData = { userData, userType };
-        const response = await authAPI.register(registerData);
+        // API mới mặc định tạo tài khoản parent
+        const response = await authAPI.register(userData);
         
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: false });
         
