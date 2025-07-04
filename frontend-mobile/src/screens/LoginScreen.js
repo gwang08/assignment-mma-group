@@ -11,14 +11,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import {Picker} from "@react-native-picker/picker";
 import {useAuth} from "../context/AuthContext";
 import colors from "../styles/colors";
 
 const LoginScreen = ({navigation}) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [userType, setUserType] = useState("parent");
   const {signIn, isLoading} = useAuth();
 
   const handleLogin = async () => {
@@ -27,7 +25,7 @@ const LoginScreen = ({navigation}) => {
       return;
     }
 
-    const result = await signIn(username, password, userType);
+    const result = await signIn(username, password);
 
     if (result.success) {
       // Navigation sẽ được xử lý tự động bởi AuthContext
@@ -71,22 +69,6 @@ const LoginScreen = ({navigation}) => {
               autoCapitalize="none"
               autoCorrect={false}
             />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Loại tài khoản</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={userType}
-                onValueChange={setUserType}
-                style={styles.picker}
-              >
-                <Picker.Item label="Phụ huynh" value="parent" />
-                <Picker.Item label="Học sinh" value="student" />
-                <Picker.Item label="Y tá" value="medicalStaff" />
-                <Picker.Item label="Quản trị viên" value="admin" />
-              </Picker>
-            </View>
           </View>
 
           <TouchableOpacity
@@ -170,16 +152,6 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: colors.background,
-    color: colors.text,
-  },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    backgroundColor: colors.background,
-  },
-  picker: {
-    height: 50,
     color: colors.text,
   },
   button: {

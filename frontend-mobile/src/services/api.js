@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL cho backend
 // Dùng IP của máy thay vì localhost cho mobile
-const BASE_URL = "http://192.168.1.8:3000"; // Thay IP này bằng IP thực của máy bạn
+const BASE_URL = "http://192.168.1.241:3000"; // Thay IP này bằng IP thực của máy bạn
 
 // Tạo instance của axios
 const api = axios.create({
@@ -54,9 +54,10 @@ api.interceptors.response.use(
 
 // Auth API functions
 export const authAPI = {
-  // Đăng nhập
-  login: async (loginData) => {
+  // Đăng nhập - chỉ cần username và password
+  login: async (username, password) => {
     try {
+      const loginData = { username, password };
       console.log("Attempting login with:", {...loginData, password: "***"});
       const response = await api.post("/auth/login", loginData);
       console.log("Login successful:", response.data);
@@ -76,12 +77,41 @@ export const authAPI = {
     }
   },
 
-  // Đăng ký
-  register: async (registerData) => {
+  // Đăng ký - mặc định role là parent
+  register: async (userData) => {
     try {
+      const registerData = {
+        userData: {
+          ...userData,
+          // Đảm bảo có đầy đủ thông tin theo schema
+          address: userData.address || {
+            street: "",
+            city: "",
+            state: "",
+            postal_code: "",
+            country: "Vietnam"
+          }
+        },
+        userType: "parent" // Mặc định role là parent
+      };
+      
+      console.log("Attempting register with:", {
+        ...registerData,
+        userData: {
+          ...registerData.userData,
+          password: "***"
+        }
+      });
+      
       const response = await api.post("/auth/register", registerData);
+      console.log("Register successful:", response.data);
       return response.data;
     } catch (error) {
+      console.error("Register error details:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       throw error.response?.data || {message: "Network error"};
     }
   },
