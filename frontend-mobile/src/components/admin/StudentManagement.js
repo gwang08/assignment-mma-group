@@ -11,11 +11,13 @@ import {
 } from 'react-native';
 import { adminAPI } from '../../services/adminApi';
 import colors from '../../styles/colors';
+import StudentCreationForm from './StudentCreationForm';
 
 const StudentManagement = ({ onEdit, onDeactivate }) => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     fetchStudents();
@@ -37,6 +39,11 @@ const StudentManagement = ({ onEdit, onDeactivate }) => {
     setRefreshing(true);
     await fetchStudents();
     setRefreshing(false);
+  };
+
+  const handleCreateSuccess = () => {
+    setShowCreateModal(false);
+    fetchStudents(); // Refresh danh sách
   };
 
   const renderStudentItem = ({ item }) => (
@@ -62,11 +69,11 @@ const StudentManagement = ({ onEdit, onDeactivate }) => {
       
       <View style={styles.cardContent}>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>🎂</Text>
+          <Text style={styles.infoIcon}>Ngày sinh:</Text>
           <Text style={styles.infoText}>{item.dateOfBirth}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>{item.gender === 'male' ? '👦' : '👧'}</Text>
+          <Text style={styles.infoIcon}>Giới tính:</Text>
           <Text style={styles.infoText}>{item.gender === 'male' ? 'Nam' : 'Nữ'}</Text>
         </View>
       </View>
@@ -76,14 +83,12 @@ const StudentManagement = ({ onEdit, onDeactivate }) => {
           style={[styles.modernActionBtn, styles.editBtn]}
           onPress={() => onEdit(item, 'student')}
         >
-          <Text style={styles.actionIcon}>✏️</Text>
           <Text style={styles.actionText}>Sửa</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.modernActionBtn, styles.deleteBtn]}
           onPress={() => onDeactivate(item, 'student')}
         >
-          <Text style={styles.actionIcon}>🗑️</Text>
           <Text style={styles.actionText}>Xóa</Text>
         </TouchableOpacity>
       </View>
@@ -100,27 +105,49 @@ const StudentManagement = ({ onEdit, onDeactivate }) => {
   }
 
   return (
-    <FlatList
-      data={students}
-      renderItem={renderStudentItem}
-      keyExtractor={(item) => item._id}
-      contentContainerStyle={styles.listContainer}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-      ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Không có học sinh nào</Text>
-        </View>
-      }
-    />
+    <View style={styles.container}>
+      <FlatList
+        data={students}
+        renderItem={renderStudentItem}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Không có học sinh nào</Text>
+          </View>
+        }
+      />
+      
+      {/* Floating Action Button */}
+      <TouchableOpacity 
+        style={styles.fab}
+        onPress={() => setShowCreateModal(true)}
+      >
+        <Text style={styles.fabIcon}>+</Text>
+      </TouchableOpacity>
+
+      {/* Student Creation Modal */}
+      <StudentCreationForm
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateSuccess}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
   listContainer: {
     padding: 16,
+    paddingBottom: 80, // Space for FAB
   },
   modernCard: {
     backgroundColor: '#FFFFFF',
@@ -249,6 +276,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7F8C8D',
     textAlign: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  fabIcon: {
+    fontSize: 24,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
 });
 

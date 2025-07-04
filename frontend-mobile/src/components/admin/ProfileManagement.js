@@ -188,13 +188,11 @@ const ProfileManagement = () => {
           <View style={styles.infoSection}>
             <Text style={styles.infoLabel}>Thông tin tài khoản</Text>
             <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>📅</Text>
               <Text style={styles.infoText}>
                 Tạo lúc: {new Date(userProfile?.createdAt).toLocaleDateString('vi-VN')}
               </Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.infoIcon}>🕒</Text>
               <Text style={styles.infoText}>
                 Đăng nhập cuối: {userProfile?.last_login ? 
                   new Date(userProfile.last_login).toLocaleDateString('vi-VN') : 'Chưa có'
@@ -211,14 +209,12 @@ const ProfileManagement = () => {
                 style={[styles.actionBtn, styles.editBtn]}
                 onPress={() => setEditing(true)}
               >
-                <Text style={styles.actionIcon}>✏️</Text>
                 <Text style={styles.actionText}>Chỉnh sửa</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.logoutBtn]}
                 onPress={handleLogout}
               >
-                <Text style={styles.actionIcon}>🚪</Text>
                 <Text style={styles.actionText}>Đăng xuất</Text>
               </TouchableOpacity>
             </>
@@ -228,7 +224,6 @@ const ProfileManagement = () => {
                 style={[styles.actionBtn, styles.saveBtn]}
                 onPress={handleUpdateProfile}
               >
-                <Text style={styles.actionIcon}>💾</Text>
                 <Text style={styles.actionText}>Lưu</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -238,7 +233,6 @@ const ProfileManagement = () => {
                   setFormData(userProfile);
                 }}
               >
-                <Text style={styles.actionIcon}>❌</Text>
                 <Text style={styles.actionText}>Hủy</Text>
               </TouchableOpacity>
             </>

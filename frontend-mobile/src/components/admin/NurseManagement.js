@@ -62,15 +62,15 @@ const NurseManagement = ({ onEdit, onDeactivate }) => {
       
       <View style={styles.cardContent}>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>📧</Text>
+          <Text style={styles.infoIcon}>Email:</Text>
           <Text style={styles.infoText}>{item.email}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>📱</Text>
+          <Text style={styles.infoIcon}>Số điện thoại:</Text>
           <Text style={styles.infoText}>{item.phone_number}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>{item.gender === 'male' ? '👨‍⚕️' : '👩‍⚕️'}</Text>
+          <Text style={styles.infoIcon}>Giới tính:</Text>
           <Text style={styles.infoText}>{item.gender === 'male' ? 'Nam' : 'Nữ'}</Text>
         </View>
       </View>
@@ -80,14 +80,12 @@ const NurseManagement = ({ onEdit, onDeactivate }) => {
           style={[styles.modernActionBtn, styles.editBtn]}
           onPress={() => onEdit(item, 'nurse')}
         >
-          <Text style={styles.actionIcon}>✏️</Text>
           <Text style={styles.actionText}>Sửa</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.modernActionBtn, styles.deleteBtn]}
           onPress={() => onDeactivate(item, 'nurse')}
         >
-          <Text style={styles.actionIcon}>🗑️</Text>
           <Text style={styles.actionText}>Xóa</Text>
         </TouchableOpacity>
       </View>

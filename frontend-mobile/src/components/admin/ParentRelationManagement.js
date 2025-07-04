@@ -25,8 +25,19 @@ const ParentRelationManagement = () => {
     setLoading(true);
     try {
       const response = await adminAPI.getParentStudentRelations();
-      setParentRelations(response.data || []);
+      console.log('Parent Relations Response:', JSON.stringify(response, null, 2));
+      
+      // Kiểm tra cấu trúc response
+      let relations = [];
+      if (response && response.data) {
+        relations = Array.isArray(response.data) ? response.data : [];
+      } else if (Array.isArray(response)) {
+        relations = response;
+      }
+      
+      setParentRelations(relations);
     } catch (error) {
+      console.error('Error fetching parent relations:', error);
       Alert.alert('Lỗi', 'Không thể tải quan hệ phụ huynh-học sinh');
     } finally {
       setLoading(false);
@@ -62,56 +73,58 @@ const ParentRelationManagement = () => {
     );
   };
 
-  const renderParentRelationItem = ({ item }) => (
+  const renderParentRelationItem = ({ item }) => {
+    
+    return (
     <View style={styles.modernCard}>
       <View style={styles.cardHeader}>
         <View style={styles.relationContainer}>
           <View style={styles.parentSection}>
-            <View style={[styles.avatarContainer, { backgroundColor: '#9C27B0' }]}>
+            <View style={[styles.avatarContainer, { backgroundColor: item.parent ? '#9C27B0' : '#95a5a6' }]}>
               <Text style={styles.avatarText}>
-                {item.parent?.first_name?.charAt(0)}{item.parent?.last_name?.charAt(0)}
+                {item.parent ? 
+                  `${item.parent.first_name?.charAt(0) || 'P'}${item.parent.last_name?.charAt(0) || 'H'}` 
+                  : '?'
+                }
               </Text>
             </View>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>
-                {item.parent?.first_name} {item.parent?.last_name}
+              <Text style={[styles.userName, !item.parent && styles.errorText]}>
+                {item.parent ? 
+                  `${item.parent.first_name || 'Tên không có'} ${item.parent.last_name || 'Họ không có'}` 
+                  : 'Thông tin phụ huynh bị thiếu'
+                }
               </Text>
-              <Text style={styles.userRole}>Phụ huynh</Text>
+              <Text style={styles.userRole}>
+                {item.parent ? 'Phụ huynh' : 'Dữ liệu không đầy đủ'}
+              </Text>
+              
             </View>
           </View>
 
           <View style={styles.relationIndicator}>
-            <Text style={styles.relationIcon}>👨‍👩‍👧‍👦</Text>
             <Text style={styles.relationText}>{item.relationship}</Text>
           </View>
 
           <View style={styles.studentSection}>
             <View style={[styles.avatarContainer, { backgroundColor: '#FF5722' }]}>
               <Text style={styles.avatarText}>
-                {item.student?.first_name?.charAt(0)}{item.student?.last_name?.charAt(0)}
+                {item.student?.first_name?.charAt(0) || 'H'}{item.student?.last_name?.charAt(0) || 'S'}
               </Text>
             </View>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>
-                {item.student?.first_name} {item.student?.last_name}
+                {item.student?.first_name || 'Tên không có'} {item.student?.last_name || 'Họ không có'}
               </Text>
-              <Text style={styles.userRole}>Học sinh - Lớp {item.student?.class_name}</Text>
+              <Text style={styles.userRole}>Học sinh - Lớp {item.student?.class_name || 'Không có'}</Text>
             </View>
           </View>
         </View>
       </View>
       
       <View style={styles.cardContent}>
+
         <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>📧</Text>
-          <Text style={styles.infoText}>{item.parent?.email}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>📱</Text>
-          <Text style={styles.infoText}>{item.parent?.phone_number}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoIcon}>📅</Text>
           <Text style={styles.infoText}>
             Liên kết từ: {new Date(item.createdAt).toLocaleDateString('vi-VN')}
           </Text>
@@ -123,12 +136,12 @@ const ParentRelationManagement = () => {
           style={[styles.modernActionBtn, styles.deleteBtn]}
           onPress={() => handleDeleteRelation(item._id)}
         >
-          <Text style={styles.actionIcon}>🗑️</Text>
           <Text style={styles.actionText}>Xóa mối quan hệ</Text>
         </TouchableOpacity>
       </View>
     </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -294,6 +307,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7F8C8D',
     textAlign: 'center',
+  },
+  errorText: {
+    color: '#e74c3c',
+    fontStyle: 'italic',
+  },
+  userEmail: {
+    fontSize: 12,
+    color: '#7F8C8D',
+    marginTop: 2,
+  },
+  userPhone: {
+    fontSize: 12,
+    color: '#7F8C8D',
+    marginTop: 1,
   },
 });
 

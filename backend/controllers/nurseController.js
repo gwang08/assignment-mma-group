@@ -6,13 +6,13 @@ const Campaign = require("../models/campaign/campaign");
 const CampaignResult = require("../models/campaign/campaignResult");
 const CampaignConsent = require("../models/campaign/campaignConsent");
 const ConsultationSchedule = require("../models/campaign/consultationSchedule");
-const {CAMPAIGN_TYPE, CAMPAIGN_CONSENT_STATUS} = require("../utils/enums");
+const { CAMPAIGN_TYPE, CAMPAIGN_CONSENT_STATUS } = require("../utils/enums");
 const StudentParent = require("../models/user/studentParent");
 
 // Helper function to validate a student ID
 const validateStudentRole = async (studentId) => {
   if (!studentId) return null;
-  return await User.findOne({_id: studentId, role: "student"});
+  return await User.findOne({ _id: studentId, role: "student" });
 };
 
 class NurseController {
@@ -21,12 +21,12 @@ class NurseController {
     try {
       // Return dashboard data as JSON instead of rendering a view
       const recentEvents = await MedicalEvent.find()
-        .sort({createdAt: -1})
+        .sort({ createdAt: -1 })
         .limit(5)
         .populate("student", "first_name last_name class_name");
 
       const recentRequests = await MedicineRequest.find()
-        .sort({createdAt: -1})
+        .sort({ createdAt: -1 })
         .limit(5)
         .populate("student", "first_name last_name class_name");
 
@@ -37,7 +37,7 @@ class NurseController {
           recentEvents,
           recentRequests,
           dashboardStats: {
-            activeEvents: await MedicalEvent.countDocuments({status: "Open"}),
+            activeEvents: await MedicalEvent.countDocuments({ status: "Open" }),
             pendingRequests: await MedicineRequest.countDocuments({
               status: "Pending",
             }),
@@ -55,12 +55,12 @@ class NurseController {
       const events = await MedicalEvent.find()
         .populate("student", "first_name last_name class_name")
         .populate("created_by", "first_name last_name role")
-        .sort({createdAt: -1})
+        .sort({ createdAt: -1 })
         .limit(50);
 
       res.json(events);
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch medical events"});
+      res.status(500).json({ error: "Failed to fetch medical events" });
     }
   }
 
@@ -74,13 +74,13 @@ class NurseController {
         symptoms = [],
         treatment_notes = "",
         medications_administered = [],
-        parent_notified = {status: false},
+        parent_notified = { status: false },
         follow_up_required = false,
         follow_up_notes = "",
       } = req.body;
 
       // Validate that studentId corresponds to a user with student role
-      const student = await User.findOne({_id: studentId, role: "student"});
+      const student = await User.findOne({ _id: studentId, role: "student" });
       if (!student) {
         return res.status(404).json({
           error: "Student not found or invalid student ID",
@@ -126,13 +126,13 @@ class NurseController {
         );
 
       if (!medicalEvent) {
-        return res.status(404).json({error: "Medical event not found"});
+        return res.status(404).json({ error: "Medical event not found" });
       }
 
       res.json(medicalEvent);
     } catch (error) {
       console.error("Error fetching medical event:", error);
-      res.status(500).json({error: "Failed to fetch medical event"});
+      res.status(500).json({ error: "Failed to fetch medical event" });
     }
   }
 
@@ -142,7 +142,7 @@ class NurseController {
       // First find the event to verify student's role before update
       const existingEvent = await MedicalEvent.findById(req.params.eventId);
       if (!existingEvent) {
-        return res.status(404).json({error: "Medical event not found"});
+        return res.status(404).json({ error: "Medical event not found" });
       }
 
       // Verify the student role
@@ -182,7 +182,7 @@ class NurseController {
       const medicalEvent = await MedicalEvent.findByIdAndUpdate(
         req.params.eventId,
         updateData,
-        {new: true}
+        { new: true }
       ).populate("student", "first_name last_name class_name");
 
       res.json(medicalEvent);
@@ -198,12 +198,12 @@ class NurseController {
   // Mark a medical event as resolved
   static async resolveEvent(req, res, next) {
     try {
-      const {treatment_notes} = req.body;
+      const { treatment_notes } = req.body;
 
       const medicalEvent = await MedicalEvent.findById(req.params.eventId);
 
       if (!medicalEvent) {
-        return res.status(404).json({error: "Medical event not found"});
+        return res.status(404).json({ error: "Medical event not found" });
       }
 
       medicalEvent.status = "Resolved";
@@ -218,26 +218,26 @@ class NurseController {
       res.json(medicalEvent);
     } catch (error) {
       console.error("Error resolving medical event:", error);
-      res.status(400).json({error: "Failed to resolve medical event"});
+      res.status(400).json({ error: "Failed to resolve medical event" });
     }
   }
 
   // Record medication administered for a medical event
   static async addMedication(req, res, next) {
     try {
-      const {name, dosage, time} = req.body;
+      const { name, dosage, time } = req.body;
 
       const medicalEvent = await MedicalEvent.findById(req.params.eventId);
 
       if (!medicalEvent) {
-        return res.status(404).json({error: "Medical event not found"});
+        return res.status(404).json({ error: "Medical event not found" });
       }
 
       medicalEvent.medications_administered.push({
         name,
         dosage,
         time: time || new Date(),
-        administered_by: req.user._id,
+        administered_by: req.nurse._id,
       });
 
       await medicalEvent.save();
@@ -245,19 +245,19 @@ class NurseController {
       res.json(medicalEvent);
     } catch (error) {
       console.error("Error adding medication:", error);
-      res.status(400).json({error: "Failed to add medication"});
+      res.status(400).json({ error: "Failed to add medication" });
     }
   }
 
   // Update parent notification status
   static async updateParentNotification(req, res, next) {
     try {
-      const {status, method} = req.body;
+      const { status, method } = req.body;
 
       const medicalEvent = await MedicalEvent.findById(req.params.eventId);
 
       if (!medicalEvent) {
-        return res.status(404).json({error: "Medical event not found"});
+        return res.status(404).json({ error: "Medical event not found" });
       }
 
       medicalEvent.parent_notified = {
@@ -271,7 +271,7 @@ class NurseController {
       res.json(medicalEvent);
     } catch (error) {
       console.error("Error updating parent notification:", error);
-      res.status(400).json({error: "Failed to update parent notification"});
+      res.status(400).json({ error: "Failed to update parent notification" });
     }
   }
 
@@ -281,32 +281,32 @@ class NurseController {
       const requests = await MedicineRequest.find()
         .populate("student", "first_name last_name class_name")
         .populate("created_by", "first_name last_name")
-        .sort({createdAt: -1});
+        .sort({ createdAt: -1 });
 
       res.json(requests);
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch medicine requests"});
+      res.status(500).json({ error: "Failed to fetch medicine requests" });
     }
   }
 
   static async getMedicineInventory(req, res, next) {
     try {
       const inventory = await MedicineRequest.aggregate([
-        {$unwind: "$medicines"},
+        { $unwind: "$medicines" },
         {
           $group: {
             _id: "$medicines.name",
-            totalRequests: {$sum: 1},
-            commonDosage: {$first: "$medicines.dosage"},
-            commonFrequency: {$first: "$medicines.frequency"},
+            totalRequests: { $sum: 1 },
+            commonDosage: { $first: "$medicines.dosage" },
+            commonFrequency: { $first: "$medicines.frequency" },
           },
         },
-        {$sort: {totalRequests: -1}},
+        { $sort: { totalRequests: -1 } },
       ]);
 
       res.json(inventory);
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch inventory data"});
+      res.status(500).json({ error: "Failed to fetch inventory data" });
     }
   }
 
@@ -315,17 +315,17 @@ class NurseController {
     try {
       const campaigns = await Campaign.find({
         type: CAMPAIGN_TYPE.VACCINATION,
-      }).sort({date: -1});
+      }).sort({ date: -1 });
 
       res.json(campaigns);
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch vaccination campaigns"});
+      res.status(500).json({ error: "Failed to fetch vaccination campaigns" });
     }
   }
 
   static async createVaccinationCampaign(req, res, next) {
     try {
-      const {title, description, date, vaccineDetails} = req.body;
+      const { title, description, date, vaccineDetails } = req.body;
 
       const campaign = new Campaign({
         title,
@@ -338,7 +338,7 @@ class NurseController {
       await campaign.save();
       res.status(201).json(campaign);
     } catch (error) {
-      res.status(400).json({error: "Failed to create vaccination campaign"});
+      res.status(400).json({ error: "Failed to create vaccination campaign" });
     }
   }
 
@@ -352,13 +352,13 @@ class NurseController {
 
       res.json(results);
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch vaccination results"});
+      res.status(500).json({ error: "Failed to fetch vaccination results" });
     }
   }
 
   static async createVaccinationResult(req, res, next) {
     try {
-      const {studentId, notes} = req.body;
+      const { studentId, notes } = req.body;
 
       // Validate student role
       const student = await validateStudentRole(studentId);
@@ -371,7 +371,7 @@ class NurseController {
       const result = new CampaignResult({
         campaign: req.params.campaignId,
         student: studentId,
-        created_by: req.user._id,
+        created_by: req.nurse._id,
         notes,
       });
 
@@ -380,7 +380,7 @@ class NurseController {
 
       res.status(201).json(result);
     } catch (error) {
-      res.status(400).json({error: "Failed to record vaccination result"});
+      res.status(400).json({ error: "Failed to record vaccination result" });
     }
   }
 
@@ -389,17 +389,17 @@ class NurseController {
     try {
       const campaigns = await Campaign.find({
         type: CAMPAIGN_TYPE.CHECKUP,
-      }).sort({date: -1});
+      }).sort({ date: -1 });
 
       res.json(campaigns);
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch health check campaigns"});
+      res.status(500).json({ error: "Failed to fetch health check campaigns" });
     }
   }
 
   static async createHealthCheckCampaign(req, res, next) {
     try {
-      const {title, description, date} = req.body;
+      const { title, description, date } = req.body;
 
       const campaign = new Campaign({
         title,
@@ -411,7 +411,7 @@ class NurseController {
       await campaign.save();
       res.status(201).json(campaign);
     } catch (error) {
-      res.status(400).json({error: "Failed to create health check campaign"});
+      res.status(400).json({ error: "Failed to create health check campaign" });
     }
   }
 
@@ -425,13 +425,13 @@ class NurseController {
 
       res.json(results);
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch health check results"});
+      res.status(500).json({ error: "Failed to fetch health check results" });
     }
   }
 
   static async createHealthCheckResult(req, res, next) {
     try {
-      const {studentId, checkupDetails, notes} = req.body;
+      const { studentId, checkupDetails, notes } = req.body;
 
       // Validate student role
       const student = await validateStudentRole(studentId);
@@ -444,7 +444,7 @@ class NurseController {
       const result = new CampaignResult({
         campaign: req.params.campaignId,
         student: studentId,
-        created_by: req.user._id,
+        created_by: req.nurse._id,
         notes,
         checkupDetails,
       });
@@ -454,7 +454,7 @@ class NurseController {
 
       res.status(201).json(result);
     } catch (error) {
-      res.status(400).json({error: "Failed to record health check result"});
+      res.status(400).json({ error: "Failed to record health check result" });
     }
   }
 
@@ -462,29 +462,29 @@ class NurseController {
   static async getConsultations(req, res, next) {
     try {
       const consultations = await ConsultationSchedule.find({
-        medicalStaff: req.user._id,
+        medicalStaff: req.nurse._id,
       })
         .populate("student", "first_name last_name class_name")
         .populate("attending_parent", "first_name last_name phone_number")
         .populate("campaignResult")
-        .sort({scheduledDate: 1});
+        .sort({ scheduledDate: 1 });
 
       res.json(consultations);
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch consultations"});
+      res.status(500).json({ error: "Failed to fetch consultations" });
     }
   }
 
   // Student Health Records Management
   static async getStudents(req, res, next) {
     try {
-      const {search, class_name} = req.query;
+      const { search, class_name } = req.query;
       const query = {};
 
       if (search) {
         query.$or = [
-          {first_name: {$regex: search, $options: "i"}},
-          {last_name: {$regex: search, $options: "i"}},
+          { first_name: { $regex: search, $options: "i" } },
+          { last_name: { $regex: search, $options: "i" } },
         ];
       }
 
@@ -496,12 +496,12 @@ class NurseController {
         ...query,
         role: "student",
       })
-        .sort({last_name: 1, first_name: 1})
+        .sort({ last_name: 1, first_name: 1 })
         .limit(100);
 
       res.json(students);
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch students"});
+      res.status(500).json({ error: "Failed to fetch students" });
     }
   }
 
@@ -525,12 +525,12 @@ class NurseController {
       );
 
       if (!healthProfile) {
-        return res.status(404).json({error: "Health profile not found"});
+        return res.status(404).json({ error: "Health profile not found" });
       }
 
       res.json(healthProfile);
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch health profile"});
+      res.status(500).json({ error: "Failed to fetch health profile" });
     }
   }
 
@@ -548,7 +548,7 @@ class NurseController {
       }
 
       const healthProfile = await HealthProfile.findOneAndUpdate(
-        {student: studentId},
+        { student: studentId },
         updateData,
         {
           new: true,
@@ -558,7 +558,7 @@ class NurseController {
 
       res.json(healthProfile);
     } catch (error) {
-      res.status(400).json({error: "Failed to update health profile"});
+      res.status(400).json({ error: "Failed to update health profile" });
     }
   }
 
@@ -578,20 +578,20 @@ class NurseController {
         student: studentId,
       })
         .populate("created_by", "first_name last_name role")
-        .sort({createdAt: -1});
+        .sort({ createdAt: -1 });
 
       const medicineRequests = await MedicineRequest.find({
         student: studentId,
       })
         .populate("created_by", "first_name last_name")
-        .sort({createdAt: -1});
+        .sort({ createdAt: -1 });
 
       const campaignResults = await CampaignResult.find({
         student: studentId,
       })
         .populate("campaign", "title type date")
         .populate("created_by", "first_name last_name")
-        .sort({createdAt: -1});
+        .sort({ createdAt: -1 });
 
       res.json({
         medicalEvents,
@@ -599,7 +599,7 @@ class NurseController {
         campaignResults,
       });
     } catch (error) {
-      res.status(500).json({error: "Failed to fetch medical history"});
+      res.status(500).json({ error: "Failed to fetch medical history" });
     }
   }
 }
