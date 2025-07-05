@@ -31,7 +31,7 @@ const healthProfileSchema = new mongoose.Schema(
         status: {
           type: String,
           enum: Object.values(CHRONIC_DISEASE_STATUS),
-          default: CHRONIC_DISEASE_STATUS.ACTIVE,
+          required: true,
         },
         notes: String,
       },
@@ -80,7 +80,6 @@ const healthProfileSchema = new mongoose.Schema(
       {
         name: { type: String, required: true },
         date: { type: Date, required: true },
-        nextDueDate: Date,
         notes: String,
       },
     ],
