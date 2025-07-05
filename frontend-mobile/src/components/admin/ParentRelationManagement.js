@@ -25,7 +25,6 @@ const ParentRelationManagement = () => {
     setLoading(true);
     try {
       const response = await adminAPI.getParentStudentRelations();
-      console.log('Parent Relations Response:', JSON.stringify(response, null, 2));
       
       // Kiểm tra cấu trúc response
       let relations = [];
@@ -48,29 +47,6 @@ const ParentRelationManagement = () => {
     setRefreshing(true);
     await fetchParentRelations();
     setRefreshing(false);
-  };
-
-  const handleDeleteRelation = async (relationId) => {
-    Alert.alert(
-      'Xác nhận',
-      'Bạn có chắc chắn muốn xóa mối quan hệ này?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await adminAPI.deleteParentStudentRelation(relationId);
-              Alert.alert('Thành công', 'Đã xóa mối quan hệ');
-              fetchParentRelations();
-            } catch (error) {
-              Alert.alert('Lỗi', 'Không thể xóa mối quan hệ');
-            }
-          },
-        },
-      ]
-    );
   };
 
   const renderParentRelationItem = ({ item }) => {
@@ -129,15 +105,6 @@ const ParentRelationManagement = () => {
             Liên kết từ: {new Date(item.createdAt).toLocaleDateString('vi-VN')}
           </Text>
         </View>
-      </View>
-
-      <View style={styles.cardActions}>
-        <TouchableOpacity 
-          style={[styles.modernActionBtn, styles.deleteBtn]}
-          onPress={() => handleDeleteRelation(item._id)}
-        >
-          <Text style={styles.actionText}>Xóa mối quan hệ</Text>
-        </TouchableOpacity>
       </View>
     </View>
     );
@@ -262,29 +229,6 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     color: '#34495E',
-  },
-  cardActions: {
-    padding: 16,
-    paddingTop: 0,
-  },
-  modernActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    borderRadius: 8,
-  },
-  deleteBtn: {
-    backgroundColor: '#E74C3C',
-  },
-  actionIcon: {
-    fontSize: 16,
-    marginRight: 6,
-  },
-  actionText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   loadingContainer: {
     flex: 1,

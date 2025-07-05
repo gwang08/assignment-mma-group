@@ -32,7 +32,7 @@ const HomeStack = () => {
       <Stack.Screen 
         name="Dashboard" 
         component={ParentDashboard} 
-        options={{ headerTitle: 'Trang chủ phụ huynh' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen 
         name="HealthProfiles" 

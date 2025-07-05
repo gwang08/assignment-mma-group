@@ -38,6 +38,7 @@ const ParentDashboard = ({ navigation }) => {
   const [endDate, setEndDate] = useState(new Date());
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -83,6 +84,12 @@ const ParentDashboard = ({ navigation }) => {
     setRefreshing(false);
   };
 
+  const handleCloseModal = () => {
+    setIsRequestModalVisible(false);
+    setShowStudentDropdown(false);
+    resetMedicineForm();
+  };
+
   const handleCreateMedicineRequest = async () => {
     try {
       if (!selectedStudent || !medicineName || !dosage || !frequency) {
@@ -123,6 +130,7 @@ const ParentDashboard = ({ navigation }) => {
     setInstructions('');
     setStartDate(new Date());
     setEndDate(new Date());
+    setShowStudentDropdown(false);
   };
 
   const getStatusColor = (status) => {
@@ -290,7 +298,7 @@ const ParentDashboard = ({ navigation }) => {
         visible={isRequestModalVisible}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setIsRequestModalVisible(false)}
+        onRequestClose={handleCloseModal}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -298,25 +306,49 @@ const ParentDashboard = ({ navigation }) => {
             
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={true}>
               <Text style={styles.label}>Chọn học sinh:</Text>
-              <View style={styles.pickerContainer}>
-                {students.map((student) => (
-                  <TouchableOpacity
-                    key={student._id}
-                    style={[
-                      styles.studentOption,
-                      selectedStudent === student._id && styles.selectedStudentOption
-                    ]}
-                    onPress={() => setSelectedStudent(student._id)}
-                  >
-                    <Text style={[
-                      styles.studentOptionText,
-                      selectedStudent === student._id && styles.selectedStudentOptionText
-                    ]}>
-                      {student.first_name} {student.last_name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <TouchableOpacity
+                style={styles.dropdownButton}
+                onPress={() => setShowStudentDropdown(!showStudentDropdown)}
+              >
+                <Text style={styles.dropdownButtonText}>
+                  {selectedStudent 
+                    ? students.find(s => s._id === selectedStudent)?.first_name + ' ' + students.find(s => s._id === selectedStudent)?.last_name
+                    : 'Chọn học sinh...'
+                  }
+                </Text>
+                <Ionicons 
+                  name={showStudentDropdown ? "chevron-up" : "chevron-down"} 
+                  size={20} 
+                  color={colors.primary} 
+                />
+              </TouchableOpacity>
+              
+              {showStudentDropdown && (
+                <View style={styles.dropdownContainer}>
+                  <ScrollView style={styles.dropdownScrollView} nestedScrollEnabled={true}>
+                    {students.map((student) => (
+                      <TouchableOpacity
+                        key={student._id}
+                        style={[
+                          styles.dropdownOption,
+                          selectedStudent === student._id && styles.selectedDropdownOption
+                        ]}
+                        onPress={() => {
+                          setSelectedStudent(student._id);
+                          setShowStudentDropdown(false);
+                        }}
+                      >
+                        <Text style={[
+                          styles.dropdownOptionText,
+                          selectedStudent === student._id && styles.selectedDropdownOptionText
+                        ]}>
+                          {`${student.first_name} ${student.last_name}`}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
               <Text style={styles.label}>Tên thuốc:</Text>
               <TextInput
@@ -372,10 +404,7 @@ const ParentDashboard = ({ navigation }) => {
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setIsRequestModalVisible(false);
-                  resetMedicineForm();
-                }}
+                onPress={handleCloseModal}
               >
                 <Text style={styles.cancelButtonText}>Hủy</Text>
               </TouchableOpacity>
@@ -572,27 +601,48 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  pickerContainer: {
-    marginBottom: 10,
-  },
-  studentOption: {
-    padding: 12,
+  dropdownButton: {
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 8,
-    marginBottom: 8,
+    padding: 12,
     backgroundColor: 'white',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
   },
-  selectedStudentOption: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  dropdownButtonText: {
+    fontSize: 16,
+    color: colors.text,
+    flex: 1,
   },
-  studentOptionText: {
+  dropdownContainer: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    backgroundColor: 'white',
+    maxHeight: 150,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  dropdownScrollView: {
+    maxHeight: 150,
+  },
+  dropdownOption: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  selectedDropdownOption: {
+    backgroundColor: colors.primary + '20',
+  },
+  dropdownOptionText: {
     fontSize: 16,
     color: colors.text,
   },
-  selectedStudentOptionText: {
-    color: 'white',
+  selectedDropdownOptionText: {
+    color: colors.primary,
     fontWeight: 'bold',
   },
   dateButton: {

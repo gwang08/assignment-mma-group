@@ -36,7 +36,7 @@ parentAPI.interceptors.request.use(
 // Interceptor để xử lý response và lỗi
 parentAPI.interceptors.response.use(
   (response) => {
-    console.log("Parent API Response:", response.status, response.config.url);
+    // console.log("Parent API Response:", response.status, response.config.url);
     return response;
   },
   (error) => {

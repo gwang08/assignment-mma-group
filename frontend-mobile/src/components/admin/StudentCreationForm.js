@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { adminAPI } from '../../services/adminApi';
 import colors from '../../styles/colors';
 
-const StudentCreationForm = ({ visible, onClose, onSuccess }) => {
+const StudentCreationForm = ({ visible, onClose, onSuccess, editingStudent, isEditing = false }) => {
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -33,6 +33,26 @@ const StudentCreationForm = ({ visible, onClose, onSuccess }) => {
   const [showClassPicker, setShowClassPicker] = useState(false);
   const [showGenderPicker, setShowGenderPicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Load editing data when modal opens
+  useEffect(() => {
+    if (visible && isEditing && editingStudent) {
+      setFormData({
+        first_name: editingStudent.first_name || '',
+        last_name: editingStudent.last_name || '',
+        student_id: editingStudent.student_id || '',
+        class_name: editingStudent.class_name || '',
+        gender: editingStudent.gender || '',
+        date_of_birth: editingStudent.dateOfBirth ? new Date(editingStudent.dateOfBirth) : new Date(),
+        address: editingStudent.address || '',
+        phone_number: editingStudent.phone_number || '',
+        email: editingStudent.email || '',
+        notes: editingStudent.notes || ''
+      });
+    } else if (visible && !isEditing) {
+      resetForm();
+    }
+  }, [visible, isEditing, editingStudent]);
 
   const resetForm = () => {
     setFormData({
@@ -124,19 +144,22 @@ const StudentCreationForm = ({ visible, onClose, onSuccess }) => {
         notes: formData.notes.trim() || undefined
       };
 
-      console.log('Sending student data:', studentData);
-      
-      const response = await adminAPI.createStudent(studentData);
+      let response;
+      if (isEditing && editingStudent) {
+        response = await adminAPI.updateStudent(editingStudent._id, studentData);
+      } else {
+        response = await adminAPI.createStudent(studentData);
+      }
       
       if (response.success) {
-        Alert.alert('Thành công', 'Học sinh đã được tạo thành công');
+        Alert.alert('Thành công', isEditing ? 'Học sinh đã được cập nhật thành công' : 'Học sinh đã được tạo thành công');
         resetForm();
         onSuccess && onSuccess();
         onClose();
       }
     } catch (error) {
-      console.error('Create student error:', error);
-      Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi tạo học sinh');
+      console.error(isEditing ? 'Update student error:' : 'Create student error:', error);
+      Alert.alert('Lỗi', error.message || `Có lỗi xảy ra khi ${isEditing ? 'cập nhật' : 'tạo'} học sinh`);
     } finally {
       setSubmitting(false);
     }
@@ -159,7 +182,7 @@ const StudentCreationForm = ({ visible, onClose, onSuccess }) => {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Tạo học sinh mới</Text>
+            <Text style={styles.modalTitle}>{isEditing ? 'Chỉnh sửa học sinh' : 'Tạo học sinh mới'}</Text>
             <TouchableOpacity 
               style={styles.closeButton}
               onPress={() => {
@@ -273,7 +296,7 @@ const StudentCreationForm = ({ visible, onClose, onSuccess }) => {
                 ) : (
                   <>
                     <Ionicons name="person-add" size={20} color="#fff" />
-                    <Text style={styles.submitButtonText}>Tạo học sinh</Text>
+                    <Text style={styles.submitButtonText}>{isEditing ? 'Cập nhật' : 'Tạo học sinh'}</Text>
                   </>
                 )}
               </TouchableOpacity>
