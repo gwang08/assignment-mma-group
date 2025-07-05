@@ -27,7 +27,6 @@ const healthProfileSchema = new mongoose.Schema(
     chronicDiseases: [
       {
         name: { type: String, required: true },
-        diagnosedDate: Date,
         status: {
           type: String,
           enum: Object.values(CHRONIC_DISEASE_STATUS),

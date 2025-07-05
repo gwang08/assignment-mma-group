@@ -46,10 +46,9 @@ const ParentHealthProfiles = () => {
 
   // Vietnamese chronic disease status options
   const chronicDiseaseStatusOptions = [
-    { label: "Đang điều trị", value: "Active" },
-    { label: "Đã khỏi", value: "Recovered" },
-    { label: "Ổn định", value: "Stable" },
-    { label: "Theo dõi", value: "Monitoring" },
+    { label: "Đang tiến triển", value: "Đang tiến triển" },
+    { label: "Ổn định/Được kiểm soát", value: "Ổn định/Được kiểm soát" },
+    { label: "Thuyên giảm/Đã khỏi", value: "Thuyên giảm/Đã khỏi" },
   ];
 
   // Map English enum values to Vietnamese for display
@@ -104,10 +103,14 @@ const ParentHealthProfiles = () => {
   // Map chronic disease status to Vietnamese for display
   const mapChronicStatusToVietnamese = (status) => {
     const mapping = {
-      Active: "Đang điều trị",
-      Recovered: "Đã khỏi",
-      Stable: "Ổn định",
-      Monitoring: "Theo dõi",
+      // New enum values
+      Active: "Đang tiến triển",
+      Managed: "Ổn định/Được kiểm soát",
+      Resolved: "Thuyên giảm/Đã khỏi",
+      // Old enum values for backward compatibility
+      Recovered: "Thuyên giảm/Đã khỏi",
+      Stable: "Ổn định/Được kiểm soát",
+      Monitoring: "Đang tiến triển",
     };
     return mapping[status] || status;
   };
@@ -115,12 +118,33 @@ const ParentHealthProfiles = () => {
   // Map Vietnamese chronic disease status back to English for API submission
   const mapChronicStatusToEnglish = (status) => {
     const mapping = {
+      // Current Vietnamese labels to new enum values
+      "Đang tiến triển": "Active",
+      "Ổn định/Được kiểm soát": "Managed",
+      "Thuyên giảm/Đã khỏi": "Resolved",
+      // Old Vietnamese labels for backward compatibility
       "Đang điều trị": "Active",
-      "Đã khỏi": "Recovered",
-      "Ổn định": "Stable",
-      "Theo dõi": "Monitoring",
+      "Đã quản lý": "Managed",
+      "Đã khỏi": "Resolved",
+      "Ổn định": "Managed",
+      "Theo dõi": "Active",
     };
     return mapping[status] || status;
+  };
+
+  // Normalize old enum values to new enum values for API submission
+  const normalizeChronicStatusToNewEnum = (status) => {
+    const mapping = {
+      // Old enum values to new enum values
+      Recovered: "Resolved",
+      Stable: "Managed",
+      Monitoring: "Active",
+      // New enum values (pass through)
+      Active: "Active",
+      Managed: "Managed",
+      Resolved: "Resolved",
+    };
+    return mapping[status] || "Active"; // Default to Active if unknown
   };
 
   useEffect(() => {
@@ -182,6 +206,9 @@ const ParentHealthProfiles = () => {
   };
 
   const handleEditProfile = (profile) => {
+    // Debug: Log original profile data
+    console.log("Original profile chronic diseases:", profile.chronicDiseases);
+
     const mappedAllergies = (profile.allergies || []).map((allergy) => {
       const mappedSeverity = mapSeverityToVietnamese(allergy.severity) || "Nhẹ";
       return {
@@ -193,7 +220,7 @@ const ParentHealthProfiles = () => {
     const mappedChronicDiseases = (profile.chronicDiseases || []).map(
       (disease) => {
         const mappedStatus =
-          mapChronicStatusToVietnamese(disease.status) || "Đang điều trị";
+          mapChronicStatusToVietnamese(disease.status) || "Đang tiến triển";
         return {
           ...disease,
           status: mappedStatus,
@@ -250,13 +277,18 @@ const ParentHealthProfiles = () => {
       }));
 
       const mappedChronicDiseases = editingProfile.chronicDiseases.map(
-        (disease) => ({
-          ...disease,
-          status: mapChronicStatusToEnglish(disease.status),
-          diagnosedDate: disease.diagnosedDate
-            ? new Date(disease.diagnosedDate)
-            : undefined,
-        })
+        (disease) => {
+          const englishStatus = mapChronicStatusToEnglish(disease.status);
+          const normalizedStatus =
+            normalizeChronicStatusToNewEnum(englishStatus);
+          return {
+            ...disease,
+            status: normalizedStatus,
+            diagnosedDate: disease.diagnosedDate
+              ? new Date(disease.diagnosedDate)
+              : undefined,
+          };
+        }
       );
 
       const updateData = {
@@ -349,7 +381,7 @@ const ParentHealthProfiles = () => {
       ...prev,
       chronicDiseases: [
         ...prev.chronicDiseases,
-        { name: "", status: "Đang điều trị", diagnosedDate: "", notes: "" },
+        { name: "", status: "Đang tiến triển", diagnosedDate: "", notes: "" },
       ],
     }));
   };
@@ -672,6 +704,64 @@ const ParentHealthProfiles = () => {
                   </TouchableOpacity>
 
                   <View style={styles.detailSection}>
+                    <Text style={styles.sectionTitle}>Tình trạng thị lực</Text>
+                    {selectedProfile.vision ? (
+                      <>
+                        <Text style={styles.detailItem}>
+                          Mắt trái:{" "}
+                          {selectedProfile.vision.leftEye || "Chưa có"}
+                        </Text>
+                        <Text style={styles.detailItem}>
+                          Mắt phải:{" "}
+                          {selectedProfile.vision.rightEye || "Chưa có"}
+                        </Text>
+                        {selectedProfile.vision.lastCheckDate && (
+                          <Text style={styles.detailItem}>
+                            Ngày kiểm tra cuối:{" "}
+                            {formatDate(selectedProfile.vision.lastCheckDate)}
+                          </Text>
+                        )}
+                      </>
+                    ) : (
+                      <Text style={styles.noDataText}>
+                        Chưa có thông tin thị lực
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={styles.detailSection}>
+                    <Text style={styles.sectionTitle}>
+                      Tình trạng thính lực
+                    </Text>
+                    {selectedProfile.hearing ? (
+                      <>
+                        <Text style={styles.detailItem}>
+                          Tai trái:{" "}
+                          {mapHearingStatusToVietnamese(
+                            selectedProfile.hearing.leftEar
+                          ) || "Chưa có"}
+                        </Text>
+                        <Text style={styles.detailItem}>
+                          Tai phải:{" "}
+                          {mapHearingStatusToVietnamese(
+                            selectedProfile.hearing.rightEar
+                          ) || "Chưa có"}
+                        </Text>
+                        {selectedProfile.hearing.lastCheckDate && (
+                          <Text style={styles.detailItem}>
+                            Ngày kiểm tra cuối:{" "}
+                            {formatDate(selectedProfile.hearing.lastCheckDate)}
+                          </Text>
+                        )}
+                      </>
+                    ) : (
+                      <Text style={styles.noDataText}>
+                        Chưa có thông tin thính lực
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={styles.detailSection}>
                     <Text style={styles.sectionTitle}>Dị ứng</Text>
                     {selectedProfile.allergies?.length > 0 ? (
                       selectedProfile.allergies.map((allergy, index) => (
@@ -768,64 +858,6 @@ const ParentHealthProfiles = () => {
                     ) : (
                       <Text style={styles.noDataText}>
                         Không có lịch sử điều trị
-                      </Text>
-                    )}
-                  </View>
-
-                  <View style={styles.detailSection}>
-                    <Text style={styles.sectionTitle}>Tình trạng thị lực</Text>
-                    {selectedProfile.vision ? (
-                      <>
-                        <Text style={styles.detailItem}>
-                          Mắt trái:{" "}
-                          {selectedProfile.vision.leftEye || "Chưa có"}
-                        </Text>
-                        <Text style={styles.detailItem}>
-                          Mắt phải:{" "}
-                          {selectedProfile.vision.rightEye || "Chưa có"}
-                        </Text>
-                        {selectedProfile.vision.lastCheckDate && (
-                          <Text style={styles.detailItem}>
-                            Ngày kiểm tra cuối:{" "}
-                            {formatDate(selectedProfile.vision.lastCheckDate)}
-                          </Text>
-                        )}
-                      </>
-                    ) : (
-                      <Text style={styles.noDataText}>
-                        Chưa có thông tin thị lực
-                      </Text>
-                    )}
-                  </View>
-
-                  <View style={styles.detailSection}>
-                    <Text style={styles.sectionTitle}>
-                      Tình trạng thính lực
-                    </Text>
-                    {selectedProfile.hearing ? (
-                      <>
-                        <Text style={styles.detailItem}>
-                          Tai trái:{" "}
-                          {mapHearingStatusToVietnamese(
-                            selectedProfile.hearing.leftEar
-                          ) || "Chưa có"}
-                        </Text>
-                        <Text style={styles.detailItem}>
-                          Tai phải:{" "}
-                          {mapHearingStatusToVietnamese(
-                            selectedProfile.hearing.rightEar
-                          ) || "Chưa có"}
-                        </Text>
-                        {selectedProfile.hearing.lastCheckDate && (
-                          <Text style={styles.detailItem}>
-                            Ngày kiểm tra cuối:{" "}
-                            {formatDate(selectedProfile.hearing.lastCheckDate)}
-                          </Text>
-                        )}
-                      </>
-                    ) : (
-                      <Text style={styles.noDataText}>
-                        Chưa có thông tin thính lực
                       </Text>
                     )}
                   </View>
@@ -1184,7 +1216,7 @@ const ParentHealthProfiles = () => {
                       <View style={styles.pickerContainer}>
                         <Text style={styles.pickerLabel}>Tình trạng bệnh</Text>
                         <Picker
-                          selectedValue={disease.status || "Đang điều trị"}
+                          selectedValue={disease.status || "Đang tiến triển"}
                           style={styles.picker}
                           onValueChange={(itemValue) =>
                             updateChronicDisease(index, "status", itemValue)
@@ -1199,23 +1231,6 @@ const ParentHealthProfiles = () => {
                           ))}
                         </Picker>
                       </View>
-                      <DatePickerField
-                        value={
-                          disease.diagnosedDate
-                            ? new Date(disease.diagnosedDate)
-                            : null
-                        }
-                        placeholder="Ngày chẩn đoán"
-                        onDateChange={(date) =>
-                          updateChronicDisease(
-                            index,
-                            "diagnosedDate",
-                            date.toISOString().split("T")[0]
-                          )
-                        }
-                        dateRange="past"
-                        title="Chọn ngày chẩn đoán"
-                      />
                       <TextInput
                         style={[styles.textInput, styles.descriptionInput]}
                         placeholder="Ghi chú"
