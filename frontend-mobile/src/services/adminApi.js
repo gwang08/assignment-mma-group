@@ -43,7 +43,7 @@ export const adminAPI = {
 
   deactivateStudent: async (studentId) => {
     try {
-      const response = await api.post(`/admin/students/${studentId}/deactivate`);
+      const response = await api.put(`/admin/students/${studentId}/deactivate`);
       return response.data;
     } catch (error) {
       console.error('Deactivate student error:', error);
@@ -68,26 +68,6 @@ export const adminAPI = {
       return response.data;
     } catch (error) {
       console.error('Create medical staff error:', error);
-      throw error.response?.data || { message: 'Network error' };
-    }
-  },
-
-  updateMedicalStaff: async (staffId, staffData) => {
-    try {
-      const response = await api.put(`/admin/medical-staff/${staffId}`, staffData);
-      return response.data;
-    } catch (error) {
-      console.error('Update medical staff error:', error);
-      throw error.response?.data || { message: 'Network error' };
-    }
-  },
-
-  deactivateMedicalStaff: async (staffId) => {
-    try {
-      const response = await api.post(`/admin/medical-staff/${staffId}/deactivate`);
-      return response.data;
-    } catch (error) {
-      console.error('Deactivate medical staff error:', error);
       throw error.response?.data || { message: 'Network error' };
     }
   },
@@ -141,6 +121,73 @@ export const adminAPI = {
       return response.data;
     } catch (error) {
       console.error('Process student link request error:', error);
+      throw error.response?.data || { message: 'Network error' };
+    }
+  },
+
+  // Helper functions for approving/rejecting student link requests
+  approveStudentLinkRequest: async (requestId, notes = '') => {
+    try {
+      return await adminAPI.processStudentLinkRequest(requestId, { 
+        status: 'approved', 
+        notes 
+      });
+    } catch (error) {
+      console.error('Approve student link request error:', error);
+      throw error.response?.data || { message: 'Network error' };
+    }
+  },
+
+  rejectStudentLinkRequest: async (requestId, notes = '') => {
+    try {
+      return await adminAPI.processStudentLinkRequest(requestId, { 
+        status: 'rejected', 
+        notes 
+      });
+    } catch (error) {
+      console.error('Reject student link request error:', error);
+      throw error.response?.data || { message: 'Network error' };
+    }
+  },
+
+  // Student update and deactivate functions
+  updateStudent: async (studentId, studentData) => {
+    try {
+      const response = await api.put(`/admin/students/${studentId}`, studentData);
+      return response.data;
+    } catch (error) {
+      console.error('Update student error:', error);
+      throw error.response?.data || { message: 'Network error' };
+    }
+  },
+
+  deactivateStudent: async (studentId) => {
+    try {
+      const response = await api.put(`/admin/students/${studentId}/deactivate`);
+      return response.data;
+    } catch (error) {
+      console.error('Deactivate student error:', error);
+      throw error.response?.data || { message: 'Network error' };
+    }
+  },
+
+  // Medical staff update and deactivate functions
+  updateMedicalStaff: async (staffId, staffData) => {
+    try {
+      const response = await api.put(`/admin/medical-staff/${staffId}`, staffData);
+      return response.data;
+    } catch (error) {
+      console.error('Update medical staff error:', error);
+      throw error.response?.data || { message: 'Network error' };
+    }
+  },
+
+  deactivateMedicalStaff: async (staffId) => {
+    try {
+      const response = await api.put(`/admin/medical-staff/${staffId}/deactivate`);
+      return response.data;
+    } catch (error) {
+      console.error('Deactivate medical staff error:', error);
       throw error.response?.data || { message: 'Network error' };
     }
   },

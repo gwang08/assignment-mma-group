@@ -9,7 +9,6 @@ import ParentHealthProfiles from '../components/parents/ParentHealthProfiles';
 import ParentMedicineRequests from '../components/parents/ParentMedicineRequests';
 import ParentCampaigns from '../components/parents/ParentCampaigns';
 import ParentConsultations from '../components/parents/ParentConsultations';
-import StudentLinkRequests from '../components/parents/StudentLinkRequests';
 import { colors } from '../styles/colors';
 
 const Tab = createBottomTabNavigator();
@@ -32,7 +31,7 @@ const HomeStack = () => {
       <Stack.Screen 
         name="Dashboard" 
         component={ParentDashboard} 
-        options={{ headerShown: false }}
+        options={{ headerTitle: 'Trang chủ phụ huynh' }}
       />
       <Stack.Screen 
         name="HealthProfiles" 
@@ -53,11 +52,6 @@ const HomeStack = () => {
         name="Consultations" 
         component={ParentConsultations} 
         options={{ headerTitle: 'Lịch tư vấn' }}
-      />
-      <Stack.Screen 
-        name="StudentLinkRequests" 
-        component={StudentLinkRequests} 
-        options={{ headerTitle: 'Liên kết học sinh' }}
       />
     </Stack.Navigator>
   );

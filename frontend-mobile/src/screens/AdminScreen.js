@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   StatusBar
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import colors from '../styles/colors';
 
 // Import admin components
@@ -54,20 +55,23 @@ const AdminScreen = () => {
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>
         {[
-          { key: 'students', icon: '👨‍🎓', label: 'Học sinh' },
-          { key: 'nurses', icon: '👩‍⚕️', label: 'Y tá' },
-          { key: 'requests', icon: '📋', label: 'Yêu cầu' },
-          { key: 'relations', icon: '👨‍👩‍👧‍', label: 'Quan hệ' },
-          { key: 'profile', icon: '👤', label: 'Hồ sơ' }
+          { key: 'students', icon: 'school-outline', label: 'Học sinh' },
+          { key: 'nurses', icon: 'medical-outline', label: 'Y tá' },
+          { key: 'requests', icon: 'clipboard-outline', label: 'Yêu cầu' },
+          { key: 'relations', icon: 'people-outline', label: 'Quan hệ' },
+          { key: 'profile', icon: 'person-outline', label: 'Hồ sơ' }
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
             style={[styles.tab, activeTab === tab.key && styles.activeTab]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <Text style={[styles.tabIcon, activeTab === tab.key && styles.activeTabIcon]}>
-              {tab.icon}
-            </Text>
+            <Ionicons 
+              name={tab.icon} 
+              size={20} 
+              color={activeTab === tab.key ? '#fff' : '#666'} 
+              style={styles.tabIcon}
+            />
             <Text style={[styles.tabLabel, activeTab === tab.key && styles.activeTabLabel]}>
               {tab.label}
             </Text>
@@ -137,11 +141,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   tabIcon: {
-    fontSize: 20,
     marginBottom: 4,
-  },
-  activeTabIcon: {
-    fontSize: 22,
   },
   tabLabel: {
     fontSize: 10,

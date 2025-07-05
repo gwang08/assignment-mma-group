@@ -13,11 +13,13 @@ import { adminAPI } from '../../services/adminApi';
 import colors from '../../styles/colors';
 import StudentCreationForm from './StudentCreationForm';
 
-const StudentManagement = ({ onEdit, onDeactivate }) => {
+const StudentManagement = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
 
   useEffect(() => {
     fetchStudents();
@@ -42,8 +44,41 @@ const StudentManagement = ({ onEdit, onDeactivate }) => {
   };
 
   const handleCreateSuccess = () => {
-    setShowCreateModal(false);
-    fetchStudents(); // Refresh danh sách
+    fetchStudents();
+  };
+
+  const handleEdit = (student) => {
+    setEditingStudent(student);
+    setShowEditModal(true);
+  };
+
+  const handleEditSuccess = () => {
+    setShowEditModal(false);
+    setEditingStudent(null);
+    fetchStudents();
+  };
+
+  const handleDeactivate = (student) => {
+    Alert.alert(
+      'Xác nhận',
+      `Bạn có chắc chắn muốn vô hiệu hóa học sinh ${student.first_name} ${student.last_name}?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Vô hiệu hóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await adminAPI.deactivateStudent(student._id);
+              Alert.alert('Thành công', 'Đã vô hiệu hóa học sinh');
+              fetchStudents();
+            } catch (error) {
+              Alert.alert('Lỗi', error.message || 'Không thể vô hiệu hóa học sinh');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderStudentItem = ({ item }) => (
@@ -57,13 +92,6 @@ const StudentManagement = ({ onEdit, onDeactivate }) => {
         <View style={styles.cardInfo}>
           <Text style={styles.cardTitle}>{item.first_name} {item.last_name}</Text>
           <Text style={styles.cardSubtitle}>Lớp {item.class_name}</Text>
-        </View>
-        <View style={[styles.modernStatusBadge, { 
-          backgroundColor: item.is_active ? '#4CAF50' : '#F44336' 
-        }]}>
-          <Text style={styles.statusText}>
-            {item.is_active ? '✓' : '✗'}
-          </Text>
         </View>
       </View>
       
@@ -81,16 +109,23 @@ const StudentManagement = ({ onEdit, onDeactivate }) => {
       <View style={styles.cardActions}>
         <TouchableOpacity 
           style={[styles.modernActionBtn, styles.editBtn]}
-          onPress={() => onEdit(item, 'student')}
+          onPress={() => handleEdit(item)}
         >
           <Text style={styles.actionText}>Sửa</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.modernActionBtn, styles.deleteBtn]}
-          onPress={() => onDeactivate(item, 'student')}
-        >
-          <Text style={styles.actionText}>Xóa</Text>
-        </TouchableOpacity>
+        {item.is_active !== false && (
+          <TouchableOpacity 
+            style={[styles.modernActionBtn, styles.deleteBtn]}
+            onPress={() => handleDeactivate(item)}
+          >
+            <Text style={styles.actionText}>Vô hiệu hóa</Text>
+          </TouchableOpacity>
+        )}
+        {item.is_active === false && (
+          <View style={[styles.modernActionBtn, styles.disabledBtn]}>
+            <Text style={styles.disabledText}>Đã vô hiệu hóa</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -135,6 +170,18 @@ const StudentManagement = ({ onEdit, onDeactivate }) => {
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleCreateSuccess}
+      />
+
+      {/* Student Edit Modal */}
+      <StudentCreationForm
+        visible={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingStudent(null);
+        }}
+        onSuccess={handleEditSuccess}
+        editingStudent={editingStudent}
+        isEditing={true}
       />
     </View>
   );
@@ -198,18 +245,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#7F8C8D',
   },
-  modernStatusBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   cardContent: {
     padding: 16,
   },
@@ -246,12 +281,16 @@ const styles = StyleSheet.create({
   deleteBtn: {
     backgroundColor: '#E74C3C',
   },
-  actionIcon: {
-    fontSize: 16,
-    marginRight: 6,
+  disabledBtn: {
+    backgroundColor: '#BDC3C7',
   },
   actionText: {
     color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  disabledText: {
+    color: '#7F8C8D',
     fontSize: 14,
     fontWeight: 'bold',
   },

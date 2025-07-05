@@ -16,6 +16,8 @@ export const colors = {
   info: '#2196f3',           // Blue for info
   border: '#b3e5fc',         // Light blue border
   shadow: '#0277bd',         // Blue shadow
+  gray: '#757575',           // Gray color
+  lightGray: '#e0e0e0',      // Light gray
 };
 
 export default colors;

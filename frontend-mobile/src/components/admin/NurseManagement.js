@@ -11,11 +11,15 @@ import {
 } from 'react-native';
 import { adminAPI } from '../../services/adminApi';
 import colors from '../../styles/colors';
+import NurseCreationForm from './NurseCreationForm';
 
-const NurseManagement = ({ onEdit, onDeactivate }) => {
+const NurseManagement = () => {
   const [nurses, setNurses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingNurse, setEditingNurse] = useState(null);
 
   useEffect(() => {
     fetchNurses();
@@ -39,6 +43,44 @@ const NurseManagement = ({ onEdit, onDeactivate }) => {
     setRefreshing(false);
   };
 
+  const handleEdit = (nurse) => {
+    setEditingNurse(nurse);
+    setShowEditModal(true);
+  };
+
+  const handleEditSuccess = () => {
+    setShowEditModal(false);
+    setEditingNurse(null);
+    fetchNurses();
+  };
+
+  const handleCreateSuccess = () => {
+    fetchNurses();
+  };
+
+  const handleDeactivate = (nurse) => {
+    Alert.alert(
+      'Xác nhận',
+      `Bạn có chắc chắn muốn vô hiệu hóa y tá ${nurse.first_name} ${nurse.last_name}?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Vô hiệu hóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await adminAPI.deactivateMedicalStaff(nurse._id);
+              Alert.alert('Thành công', 'Đã vô hiệu hóa y tá');
+              fetchNurses();
+            } catch (error) {
+              Alert.alert('Lỗi', error.message || 'Không thể vô hiệu hóa y tá');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderNurseItem = ({ item }) => (
     <View style={styles.modernCard}>
       <View style={styles.cardHeader}>
@@ -50,13 +92,6 @@ const NurseManagement = ({ onEdit, onDeactivate }) => {
         <View style={styles.cardInfo}>
           <Text style={styles.cardTitle}>{item.first_name} {item.last_name}</Text>
           <Text style={styles.cardSubtitle}>{item.staff_role}</Text>
-        </View>
-        <View style={[styles.modernStatusBadge, { 
-          backgroundColor: item.is_active ? '#4CAF50' : '#F44336' 
-        }]}>
-          <Text style={styles.statusText}>
-            {item.is_active ? '✓' : '✗'}
-          </Text>
         </View>
       </View>
       
@@ -78,16 +113,23 @@ const NurseManagement = ({ onEdit, onDeactivate }) => {
       <View style={styles.cardActions}>
         <TouchableOpacity 
           style={[styles.modernActionBtn, styles.editBtn]}
-          onPress={() => onEdit(item, 'nurse')}
+          onPress={() => handleEdit(item)}
         >
           <Text style={styles.actionText}>Sửa</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.modernActionBtn, styles.deleteBtn]}
-          onPress={() => onDeactivate(item, 'nurse')}
-        >
-          <Text style={styles.actionText}>Xóa</Text>
-        </TouchableOpacity>
+        {item.is_active !== false && (
+          <TouchableOpacity 
+            style={[styles.modernActionBtn, styles.deleteBtn]}
+            onPress={() => handleDeactivate(item)}
+          >
+            <Text style={styles.actionText}>Vô hiệu hóa</Text>
+          </TouchableOpacity>
+        )}
+        {item.is_active === false && (
+          <View style={[styles.modernActionBtn, styles.disabledBtn]}>
+            <Text style={styles.disabledText}>Đã vô hiệu hóa</Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -102,27 +144,61 @@ const NurseManagement = ({ onEdit, onDeactivate }) => {
   }
 
   return (
-    <FlatList
-      data={nurses}
-      renderItem={renderNurseItem}
-      keyExtractor={(item) => item._id}
-      contentContainerStyle={styles.listContainer}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-      ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Không có y tá nào</Text>
-        </View>
-      }
-    />
+    <View style={styles.container}>
+      <FlatList
+        data={nurses}
+        renderItem={renderNurseItem}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Không có y tá nào</Text>
+          </View>
+        }
+      />
+
+      {/* FAB Create Button */}
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => setShowCreateModal(true)}
+      >
+        <Text style={styles.createButtonText}>+</Text>
+      </TouchableOpacity>
+
+      {/* Nurse Creation Modal */}
+      <NurseCreationForm
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateSuccess}
+      />
+
+      {/* Nurse Edit Modal */}
+      <NurseCreationForm
+        visible={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingNurse(null);
+        }}
+        onSuccess={handleEditSuccess}
+        editingNurse={editingNurse}
+        isEditing={true}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
   listContainer: {
     padding: 16,
+    paddingBottom: 80, // Space for FAB
   },
   modernCard: {
     backgroundColor: '#FFFFFF',
@@ -173,18 +249,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#7F8C8D',
   },
-  modernStatusBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   cardContent: {
     padding: 16,
   },
@@ -221,12 +285,16 @@ const styles = StyleSheet.create({
   deleteBtn: {
     backgroundColor: '#E74C3C',
   },
-  actionIcon: {
-    fontSize: 16,
-    marginRight: 6,
+  disabledBtn: {
+    backgroundColor: '#BDC3C7',
   },
   actionText: {
     color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  disabledText: {
+    color: '#7F8C8D',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -251,6 +319,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#7F8C8D',
     textAlign: 'center',
+  },
+  createButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: colors.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
 });
 
