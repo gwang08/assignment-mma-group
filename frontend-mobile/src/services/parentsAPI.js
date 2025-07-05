@@ -1,62 +1,11 @@
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Base URL cho backend
-const BASE_URL = "http://192.168.1.241:3000"; // Thay IP này bằng IP thực của máy bạn
-
-// Tạo instance của axios cho parent API
-const parentAPI = axios.create({
-  baseURL: BASE_URL,
-  timeout: 15000,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Interceptor để thêm token vào header
-parentAPI.interceptors.request.use(
-  async (config) => {
-    try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      console.log("Parent API Request:", config.method?.toUpperCase(), config.url);
-    } catch (error) {
-      console.error("Error getting token:", error);
-    }
-    return config;
-  },
-  (error) => {
-    console.error("Request interceptor error:", error);
-    return Promise.reject(error);
-  }
-);
-
-// Interceptor để xử lý response và lỗi
-parentAPI.interceptors.response.use(
-  (response) => {
-    // console.log("Parent API Response:", response.status, response.config.url);
-    return response;
-  },
-  (error) => {
-    console.error("Parent API Error:", {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data,
-    });
-    return Promise.reject(error);
-  }
-);
+import api from "./api";
 
 // Parent API functions
 export const parentsAPI = {
   // Profile
   getProfile: async () => {
     try {
-      const response = await parentAPI.get("/parent/profile");
+      const response = await api.get("/parent/profile");
       return response.data;
     } catch (error) {
       console.error("Get profile error:", error);
@@ -67,7 +16,7 @@ export const parentsAPI = {
   // Students
   getStudents: async () => {
     try {
-      const response = await parentAPI.get("/parent/students");
+      const response = await api.get("/parent/students");
       return response.data;
     } catch (error) {
       console.error("Get students error:", error);
@@ -79,19 +28,23 @@ export const parentsAPI = {
   getHealthProfiles: async () => {
     try {
       // First get all students
-      const studentsResponse = await parentAPI.get("/parent/students");
+      const studentsResponse = await api.get("/parent/students");
       if (!studentsResponse.data.success || !studentsResponse.data.data) {
         throw new Error("Failed to fetch students");
       }
 
       // Extract student data from the response format
-      const studentData = studentsResponse.data.data.map((item) => item.student);
+      const studentData = studentsResponse.data.data.map(
+        (item) => item.student
+      );
 
       // Then get health profile for each student
       const profiles = [];
       for (const student of studentData) {
         try {
-          const profileResponse = await parentAPI.get(`/parent/students/${student._id}/health-profile`);
+          const profileResponse = await api.get(
+            `/parent/students/${student._id}/health-profile`
+          );
           if (profileResponse.data.success && profileResponse.data.data) {
             profiles.push(profileResponse.data.data);
           }
@@ -110,7 +63,9 @@ export const parentsAPI = {
 
   getStudentHealthProfile: async (studentId) => {
     try {
-      const response = await parentAPI.get(`/parent/students/${studentId}/health-profile`);
+      const response = await api.get(
+        `/parent/students/${studentId}/health-profile`
+      );
       return response.data;
     } catch (error) {
       console.error("Get student health profile error:", error);
@@ -120,7 +75,10 @@ export const parentsAPI = {
 
   updateStudentHealthProfile: async (studentId, profileData) => {
     try {
-      const response = await parentAPI.put(`/parent/students/${studentId}/health-profile`, profileData);
+      const response = await api.put(
+        `/parent/students/${studentId}/health-profile`,
+        profileData
+      );
       return response.data;
     } catch (error) {
       console.error("Update student health profile error:", error);
@@ -131,7 +89,7 @@ export const parentsAPI = {
   // Medicine Requests
   getMedicineRequests: async () => {
     try {
-      const response = await parentAPI.get("/parent/medicine-requests");
+      const response = await api.get("/parent/medicine-requests");
       return response.data;
     } catch (error) {
       console.error("Get medicine requests error:", error);
@@ -141,7 +99,7 @@ export const parentsAPI = {
 
   createMedicineRequest: async (requestData) => {
     try {
-      const response = await parentAPI.post("/parent/medicine-requests", requestData);
+      const response = await api.post("/parent/medicine-requests", requestData);
       return response.data;
     } catch (error) {
       console.error("Create medicine request error:", error);
@@ -151,7 +109,10 @@ export const parentsAPI = {
 
   createMedicineRequestForStudent: async (studentId, requestData) => {
     try {
-      const response = await parentAPI.post(`/parent/students/${studentId}/medicine-requests`, requestData);
+      const response = await api.post(
+        `/parent/students/${studentId}/medicine-requests`,
+        requestData
+      );
       return response.data;
     } catch (error) {
       console.error("Create medicine request for student error:", error);
@@ -161,7 +122,10 @@ export const parentsAPI = {
 
   updateMedicineRequest: async (requestId, updateData) => {
     try {
-      const response = await parentAPI.put(`/parent/medicine-requests/${requestId}`, updateData);
+      const response = await api.put(
+        `/parent/medicine-requests/${requestId}`,
+        updateData
+      );
       return response.data;
     } catch (error) {
       console.error("Update medicine request error:", error);
@@ -171,7 +135,9 @@ export const parentsAPI = {
 
   deleteMedicineRequest: async (requestId) => {
     try {
-      const response = await parentAPI.delete(`/parent/medicine-requests/${requestId}`);
+      const response = await api.delete(
+        `/parent/medicine-requests/${requestId}`
+      );
       return response.data;
     } catch (error) {
       console.error("Delete medicine request error:", error);
@@ -182,7 +148,7 @@ export const parentsAPI = {
   // Campaigns
   getCampaigns: async () => {
     try {
-      const response = await parentAPI.get("/parent/campaigns");
+      const response = await api.get("/parent/campaigns");
       return response.data;
     } catch (error) {
       console.error("Get campaigns error:", error);
@@ -193,7 +159,10 @@ export const parentsAPI = {
   // Campaign Consent
   submitCampaignConsent: async (campaignId, studentId, consentData) => {
     try {
-      const response = await parentAPI.post(`/parent/campaigns/${campaignId}/students/${studentId}/consent`, consentData);
+      const response = await api.post(
+        `/parent/campaigns/${campaignId}/students/${studentId}/consent`,
+        consentData
+      );
       return response.data;
     } catch (error) {
       console.error("Submit campaign consent error:", error);
@@ -203,7 +172,10 @@ export const parentsAPI = {
 
   updateCampaignConsent: async (consentId, consentData) => {
     try {
-      const response = await parentAPI.put(`/parent/campaign-consents/${consentId}`, consentData);
+      const response = await api.put(
+        `/parent/campaign-consents/${consentId}`,
+        consentData
+      );
       return response.data;
     } catch (error) {
       console.error("Update campaign consent error:", error);
@@ -214,7 +186,7 @@ export const parentsAPI = {
   // Consultations
   getConsultationSchedules: async () => {
     try {
-      const response = await parentAPI.get("/parent/consultation-schedules");
+      const response = await api.get("/parent/consultation-schedules");
       return response.data;
     } catch (error) {
       console.error("Get consultation schedules error:", error);
@@ -224,7 +196,10 @@ export const parentsAPI = {
 
   createConsultationRequest: async (requestData) => {
     try {
-      const response = await parentAPI.post("/parent/consultation-schedules", requestData);
+      const response = await api.post(
+        "/parent/consultation-schedules",
+        requestData
+      );
       return response.data;
     } catch (error) {
       console.error("Create consultation request error:", error);
@@ -234,7 +209,10 @@ export const parentsAPI = {
 
   updateConsultationRequest: async (scheduleId, updateData) => {
     try {
-      const response = await parentAPI.put(`/parent/consultation-schedules/${scheduleId}`, updateData);
+      const response = await api.put(
+        `/parent/consultation-schedules/${scheduleId}`,
+        updateData
+      );
       return response.data;
     } catch (error) {
       console.error("Update consultation request error:", error);
@@ -244,7 +222,10 @@ export const parentsAPI = {
 
   cancelConsultationRequest: async (scheduleId) => {
     try {
-      const response = await parentAPI.put(`/parent/consultation-schedules/${scheduleId}`, { status: "cancelled" });
+      const response = await api.put(
+        `/parent/consultation-schedules/${scheduleId}`,
+        { status: "cancelled" }
+      );
       return response.data;
     } catch (error) {
       console.error("Cancel consultation request error:", error);
@@ -255,7 +236,9 @@ export const parentsAPI = {
   // Medical Events
   getStudentMedicalEvents: async (studentId) => {
     try {
-      const response = await parentAPI.get(`/parent/students/${studentId}/medical-events`);
+      const response = await api.get(
+        `/parent/students/${studentId}/medical-events`
+      );
       return response.data;
     } catch (error) {
       console.error("Get student medical events error:", error);
@@ -266,7 +249,7 @@ export const parentsAPI = {
   // Student Link Requests
   getStudentLinkRequests: async () => {
     try {
-      const response = await parentAPI.get("/parent/student-link/requests");
+      const response = await api.get("/parent/student-link/requests");
       return response.data;
     } catch (error) {
       console.error("Get student link requests error:", error);
@@ -274,20 +257,25 @@ export const parentsAPI = {
     }
   },
 
-  createStudentLinkRequest: async (studentId, relationship, isEmergencyContact = false, notes = '') => {
+  createStudentLinkRequest: async (
+    studentId,
+    relationship,
+    isEmergencyContact = false,
+    notes = ""
+  ) => {
     try {
-      const response = await parentAPI.post("/parent/student-link/request", {
+      const response = await api.post("/parent/student-link/request", {
         studentId: studentId,
         relationship: relationship,
         is_emergency_contact: isEmergencyContact,
-        notes: notes
+        notes: notes,
       });
       return response.data;
     } catch (error) {
       console.error("Create student link request error:", error);
       throw error.response?.data || { message: "Network error" };
     }
-  }
+  },
 };
 
 export default parentsAPI;
