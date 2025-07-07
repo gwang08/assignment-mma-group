@@ -10,6 +10,7 @@ const CalendarPicker = ({
   selectedDate,
   dateRange = "all", // 'all', 'future', 'past'
   title = "Chọn ngày",
+  includeToday = true, // Flag to control whether today's date is selectable
 }) => {
   const [tempDate, setTempDate] = useState(new Date());
 
@@ -97,9 +98,9 @@ const CalendarPicker = ({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Always allow today for all date ranges
+    // Check if today should be included based on the includeToday flag
     if (dayDate.getTime() === today.getTime()) {
-      return false;
+      return !includeToday;
     }
 
     switch (dateRange) {

@@ -13,6 +13,7 @@ const DatePickerField = ({
   style,
   fieldStyle,
   disabled = false,
+  includeToday = true, // Flag to control whether today's date is selectable
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -60,6 +61,7 @@ const DatePickerField = ({
         selectedDate={value}
         dateRange={dateRange}
         title={title}
+        includeToday={includeToday}
       />
     </View>
   );

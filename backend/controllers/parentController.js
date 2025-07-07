@@ -217,6 +217,43 @@ exports.createMedicineRequest = async (req, res) => {
       });
     }
 
+    // Check for overlapping medicine requests
+    const newStartDate = new Date(startDate);
+    const newEndDate = new Date(endDate);
+
+    const existingRequests = await MedicineRequest.find({
+      student: studentId,
+      $or: [
+        // New request starts within existing request period
+        {
+          startDate: { $lte: newStartDate },
+          endDate: { $gte: newStartDate },
+        },
+        // New request ends within existing request period
+        {
+          startDate: { $lte: newEndDate },
+          endDate: { $gte: newEndDate },
+        },
+        // New request completely contains existing request
+        {
+          startDate: { $gte: newStartDate },
+          endDate: { $lte: newEndDate },
+        },
+      ],
+    });
+
+    if (existingRequests.length > 0) {
+      const overlappingRequest = existingRequests[0];
+      return res.status(400).json({
+        success: false,
+        message: `Medicine request dates overlap with existing request from ${new Date(
+          overlappingRequest.startDate
+        ).toLocaleDateString("vi-VN")} to ${new Date(
+          overlappingRequest.endDate
+        ).toLocaleDateString("vi-VN")}`,
+      });
+    }
+
     // Create new medicine request
     const medicineRequest = new MedicineRequest({
       student: studentId,
@@ -341,16 +378,16 @@ exports.getCampaigns = async (req, res) => {
     // Find campaigns that target these classes or students specifically
     const campaigns = await Campaign.find({
       $and: [
-        { status: { $in: ['active', 'draft'] } }, // Show active and draft campaigns
+        { status: { $in: ["active", "draft"] } }, // Show active and draft campaigns
         {
           $or: [
             { target_classes: { $in: classNames } },
             { target_classes: "All" },
             { target_students: { $in: studentIds } },
             { target_classes: { $size: 0 } }, // Empty array means all classes
-          ]
-        }
-      ]
+          ],
+        },
+      ],
     }).sort({ date: 1 });
 
     // Get consent status for each campaign
@@ -534,7 +571,10 @@ exports.requestStudentLink = async (req, res) => {
     }
 
     // Find student by student_id
-    const student = await User.findOne({ student_id: studentId, role: "student" });
+    const student = await User.findOne({
+      student_id: studentId,
+      role: "student",
+    });
 
     if (!student) {
       return res.status(404).json({
@@ -616,5 +656,179 @@ exports.getLinkRequests = async (req, res) => {
   } catch (error) {
     console.error("Error getting link requests:", error);
     return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+/**
+ * Update medicine request
+ * Only allows updating requests where start date is today or in the future
+ */
+exports.updateMedicineRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const updateData = req.body;
+    const parentId = req.user._id;
+
+    // Find the medicine request
+    const request = await MedicineRequest.findById(requestId).populate(
+      "student"
+    );
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Medicine request not found",
+      });
+    }
+
+    // Verify parent owns this request through student relationship
+    const isAuthorized = await validateParentStudent(
+      parentId,
+      request.student._id
+    );
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this request",
+      });
+    }
+
+    // Validate that start date is today or in the future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+
+    const requestStartDate = new Date(request.startDate || request.start_date);
+    requestStartDate.setHours(0, 0, 0, 0);
+
+    if (requestStartDate < today) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot update requests that have already started",
+      });
+    }
+
+    // Check for overlapping medicine requests (exclude current request being updated)
+    if (updateData.startDate && updateData.endDate) {
+      const newStartDate = new Date(updateData.startDate);
+      const newEndDate = new Date(updateData.endDate);
+
+      // Find existing medicine requests for this student that might overlap (excluding current request)
+      const existingRequests = await MedicineRequest.find({
+        _id: { $ne: requestId }, // Exclude current request
+        student: request.student._id,
+        $or: [
+          // New request starts within existing request period
+          {
+            startDate: { $lte: newStartDate },
+            endDate: { $gte: newStartDate },
+          },
+          // New request ends within existing request period
+          {
+            startDate: { $lte: newEndDate },
+            endDate: { $gte: newEndDate },
+          },
+          // New request completely contains existing request
+          {
+            startDate: { $gte: newStartDate },
+            endDate: { $lte: newEndDate },
+          },
+        ],
+      });
+
+      if (existingRequests.length > 0) {
+        const overlappingRequest = existingRequests[0];
+        return res.status(400).json({
+          success: false,
+          message: `Medicine request dates overlap with existing request from ${new Date(
+            overlappingRequest.startDate
+          ).toLocaleDateString("vi-VN")} to ${new Date(
+            overlappingRequest.endDate
+          ).toLocaleDateString("vi-VN")}`,
+        });
+      }
+    }
+
+    // Update the request
+    const updatedRequest = await MedicineRequest.findByIdAndUpdate(
+      requestId,
+      {
+        ...updateData,
+        updatedAt: new Date(),
+      },
+      { new: true }
+    ).populate("student");
+
+    res.json({
+      success: true,
+      data: updatedRequest,
+      message: "Medicine request updated successfully",
+    });
+  } catch (error) {
+    console.error("Update medicine request error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error",
+    });
+  }
+};
+
+/**
+ * Delete medicine request
+ * Only allows deleting requests where start date is today or in the future
+ */
+exports.deleteMedicineRequest = async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const parentId = req.user._id;
+
+    // Find the medicine request
+    const request = await MedicineRequest.findById(requestId).populate(
+      "student"
+    );
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Medicine request not found",
+      });
+    }
+
+    // Verify parent owns this request through student relationship
+    const isAuthorized = await validateParentStudent(
+      parentId,
+      request.student._id
+    );
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to delete this request",
+      });
+    }
+
+    // Validate that start date is today or in the future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+
+    const requestStartDate = new Date(request.startDate || request.start_date);
+    requestStartDate.setHours(0, 0, 0, 0);
+
+    if (requestStartDate < today) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete requests that have already started",
+      });
+    }
+
+    // Delete the request
+    await MedicineRequest.findByIdAndDelete(requestId);
+
+    res.json({
+      success: true,
+      message: "Medicine request deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete medicine request error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error",
+    });
   }
 };
