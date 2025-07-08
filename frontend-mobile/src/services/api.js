@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL cho backend
 // Dùng IP của máy thay vì localhost cho mobile
-const BASE_URL = "http://192.168.2.34:3000"; // Thay IP này bằng IP thực của máy bạn
+const BASE_URL = "http://192.168.1.204:3000"; // Thay IP này bằng IP thực của máy bạn
 
 // Tạo instance của axios
 const api = axios.create({
@@ -37,7 +37,7 @@ api.interceptors.request.use(
 // Interceptor để xử lý response và lỗi
 api.interceptors.response.use(
   (response) => {
-    console.log("API Response:", response.status, response.config.url);
+    // console.log("API Response:", response.status, response.config.url);
     return response;
   },
   (error) => {
@@ -58,7 +58,7 @@ export const authAPI = {
   login: async (username, password) => {
     try {
       const loginData = { username, password };
-      console.log("Attempting login with:", {...loginData, password: "***"});
+      console.log("Attempting login with:", { ...loginData, password: "***" });
       const response = await api.post("/auth/login", loginData);
       console.log("Login successful:", response.data);
       return response.data;
@@ -73,7 +73,7 @@ export const authAPI = {
           timeout: error.config?.timeout,
         },
       });
-      throw error.response?.data || {message: "Network error"};
+      throw error.response?.data || { message: "Network error" };
     }
   },
 
@@ -89,20 +89,20 @@ export const authAPI = {
             city: "",
             state: "",
             postal_code: "",
-            country: "Vietnam"
-          }
+            country: "Vietnam",
+          },
         },
-        userType: "parent" // Mặc định role là parent
+        userType: "parent", // Mặc định role là parent
       };
-      
+
       console.log("Attempting register with:", {
         ...registerData,
         userData: {
           ...registerData.userData,
-          password: "***"
-        }
+          password: "***",
+        },
       });
-      
+
       const response = await api.post("/auth/register", registerData);
       console.log("Register successful:", response.data);
       return response.data;
@@ -112,7 +112,7 @@ export const authAPI = {
         status: error.response?.status,
         data: error.response?.data,
       });
-      throw error.response?.data || {message: "Network error"};
+      throw error.response?.data || { message: "Network error" };
     }
   },
 
@@ -155,7 +155,7 @@ export const storageAPI = {
       };
     } catch (error) {
       console.error("Error getting user data:", error);
-      return {token: null, userData: null, userType: null};
+      return { token: null, userData: null, userType: null };
     }
   },
 

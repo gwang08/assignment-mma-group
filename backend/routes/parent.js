@@ -10,10 +10,27 @@ const { authenticateParent } = require("../middleware/auth"); // Import the pare
  * All parent routes should be protected with authenticateParent middleware.
  * This ensures that only authenticated parents can access these endpoints.
  *
- * All routes use JWT authentication instead of parent ID in URL. The parent ID is
- * automatically extracted from the JWT token in the authentication middleware.
+ * All routes use JWT authentication instead of parent ID in URL. The parent ID i/**
+ * @swagger
+ * /api/parent/campaign-consents:
+ *   get:
+ *     summary: Get campaign consents for a parent
+ *     tags: [Parent]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Campaign consents retrieved successfully
+ *       401:
+ *         description: Unauthorized
  */
-
+// COMMENTED OUT: getParentCampaignConsents function does not exist in parentController
+// router.get(
+//   "/campaign-consents",
+//   authenticateParent,
+//   parentController.getParentCampaignConsents
+// ); extracted from the JWT token in the authentication middleware.
+ 
 /**
  * @swagger
  * components:
@@ -338,6 +355,117 @@ router.get(
 
 /**
  * @swagger
+ * /parent/medicine-requests/{requestId}:
+ *   put:
+ *     summary: Update a medicine request
+ *     description: Update a medicine request. Only requests with start date today or in the future can be updated.
+ *     tags: [Parent]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: requestId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the medicine request
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - startDate
+ *               - endDate
+ *               - medicines
+ *             properties:
+ *               startDate:
+ *                 type: string
+ *                 format: date
+ *               endDate:
+ *                 type: string
+ *                 format: date
+ *               medicines:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - name
+ *                     - dosage
+ *                     - frequency
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     dosage:
+ *                       type: string
+ *                     frequency:
+ *                       type: string
+ *                     notes:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Medicine request updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MedicineRequest'
+ *       400:
+ *         description: Validation error or request cannot be updated
+ *       403:
+ *         description: Not authorized to update this request
+ *       404:
+ *         description: Medicine request not found
+ */
+router.put(
+  "/medicine-requests/:requestId",
+  authenticateParent,
+  parentController.updateMedicineRequest
+);
+
+/**
+ * @swagger
+ * /parent/medicine-requests/{requestId}:
+ *   delete:
+ *     summary: Delete a medicine request
+ *     description: Delete a medicine request. Only requests with start date today or in the future can be deleted.
+ *     tags: [Parent]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: requestId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the medicine request
+ *     responses:
+ *       200:
+ *         description: Medicine request deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Request cannot be deleted (already started or approved)
+ *       403:
+ *         description: Not authorized to delete this request
+ *       404:
+ *         description: Medicine request not found
+ */
+router.delete(
+  "/medicine-requests/:requestId",
+  authenticateParent,
+  parentController.deleteMedicineRequest
+);
+
+/**
+ * @swagger
  * /parent/students/{studentId}/medical-events:
  *   get:
  *     summary: Get medical events for a student
@@ -538,5 +666,25 @@ router.get(
   authenticateParent,
   parentController.getLinkRequests
 );
+
+/**
+ * @swagger
+ * /parent/campaign-consents:
+ *   get:
+ *     summary: Get all campaign consents for the authenticated parent
+ *     tags: [Parent]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Campaign consents retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+// router.get(
+//   "/campaign-consents",
+//   authenticateParent,
+//   parentController.getParentCampaignConsents
+// );
 
 module.exports = router;

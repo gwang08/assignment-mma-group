@@ -6,7 +6,6 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-import { Avatar } from "react-native-paper";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import colors from "../../styles/colors";
@@ -46,11 +45,9 @@ const StudentHealthProfile = () => {
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyCard}>
-          <Avatar.Icon
-            size={80}
-            icon="alert"
-            style={{ backgroundColor: colors.warning }}
-          />
+          <View style={styles.alertIcon}>
+            <Text style={styles.alertText}>⚠️</Text>
+          </View>
           <Text style={styles.emptyTitle}>Chưa có hồ sơ sức khỏe</Text>
           <Text style={styles.emptyDescription}>
             Vui lòng liên hệ phụ huynh hoặc y tá trường để tạo hồ sơ.
@@ -279,6 +276,18 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: colors.textSecondary,
     lineHeight: 24,
+  },
+  alertIcon: {
+    width: 80,
+    height: 80,
+    backgroundColor: colors.warning,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  alertText: {
+    fontSize: 40,
   },
   header: {
     backgroundColor: colors.surface,
