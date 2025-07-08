@@ -325,17 +325,9 @@ class AdminController {
    */
   async getStudentParentRelations(req, res) {
     try {
-      console.log("Fetching student-parent relations...");
-      
-      // First, get relations without populate to see raw data
-      const rawRelations = await StudentParent.find();
-      console.log("Raw relations (first 2):", JSON.stringify(rawRelations.slice(0, 2), null, 2));
-      
       const relations = await StudentParent.find()
         .populate("student", "first_name last_name class_name")
         .populate("parent", "first_name last_name email phone_number");
-
-      console.log("Populated relations (first 2):", JSON.stringify(relations.slice(0, 2), null, 2));
 
       res.status(200).json({
         success: true,

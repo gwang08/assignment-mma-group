@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const Schema = require("mongoose").Schema;
+const Schema = mongoose.Schema;
 
 const medicineRequestSchema = new Schema(
   {
@@ -46,12 +46,24 @@ const medicineRequestSchema = new Schema(
       ],
       required: true,
     },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "completed"],
+      default: "pending",
+    },
+    notes: {
+      type: String,
+      default: "",
+    },
+    approved_by: {
+      type: String,
+    },
+    approved_at: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
 
-const MedicineRequest = mongoose.model(
-  "MedicineRequest",
-  medicineRequestSchema
-);
+const MedicineRequest = mongoose.model("MedicineRequest", medicineRequestSchema);
 module.exports = MedicineRequest;

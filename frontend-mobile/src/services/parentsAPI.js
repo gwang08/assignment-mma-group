@@ -1,4 +1,55 @@
-import api from "./api";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Base URL cho backend
+const BASE_URL = "http://192.168.1.204:3000"; // Thay IP này bằng IP thực của máy bạn
+
+// Tạo instance của axios cho parent API
+const parentAPI = axios.create({
+  baseURL: BASE_URL,
+  timeout: 15000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Interceptor để thêm token vào header
+parentAPI.interceptors.request.use(
+  async (config) => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      console.log("Parent API Request:", config.method?.toUpperCase(), config.url);
+    } catch (error) {
+      console.error("Error getting token:", error);
+    }
+    return config;
+  },
+  (error) => {
+    console.error("Request interceptor error:", error);
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor để xử lý response và lỗi
+parentAPI.interceptors.response.use(
+  (response) => {
+    // console.log("Parent API Response:", response.status, response.config.url);
+    return response;
+  },
+  (error) => {
+    console.error("Parent API Error:", {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data,
+    });
+    return Promise.reject(error);
+  }
+);
 
 // Parent API functions
 export const parentsAPI = {
