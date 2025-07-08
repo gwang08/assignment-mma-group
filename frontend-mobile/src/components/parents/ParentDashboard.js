@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../styles/colors";
 import { parentsAPI } from "../../services/parentsAPI";
 import { useAuth } from "../../context/AuthContext";
+import MedicineRequestModals from "../common/MedicineRequestModals";
 
 const ParentDashboard = ({ navigation }) => {
   const { user } = useAuth();
@@ -22,9 +23,46 @@ const ParentDashboard = ({ navigation }) => {
   const [campaigns, setCampaigns] = useState([]);
   const [consultations, setConsultations] = useState([]);
 
+  // Modal states for medicine request functionality
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isStudentPickerVisible, setIsStudentPickerVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
+
+  // Medicine request form states
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [medicines, setMedicines] = useState([
+    { name: "", dosage: "", frequency: "", notes: "" },
+  ]);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
+
+  // Default date functions
+  const getDefaultStartDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow;
+  };
+
+  const getDefaultEndDate = () => {
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    return nextWeek;
+  };
+
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  // Debug effect to track selectedStudent changes
+  useEffect(() => {
+    if (selectedStudent) {
+      const studentInfo = getSelectedStudentInfo();
+    }
+  }, [selectedStudent, students]);
 
   const loadDashboardData = async () => {
     try {
@@ -71,21 +109,274 @@ const ParentDashboard = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const getStatusColor = (status) => {
+  // Helper function to get status color for consultations (not medicine requests)
+  const getConsultationStatusColor = (status) => {
     const colors = {
       pending: "#f39c12",
-      approved: "#27ae60",
-      rejected: "#e74c3c",
-      completed: "#3498db",
       scheduled: "#9b59b6",
+      completed: "#3498db",
       cancelled: "#95a5a6",
     };
     return colors[status] || "#95a5a6";
   };
 
+  // Helper function to get student name from medicine request
+  const getStudentName = (request) => {
+    // If student object is directly attached
+    if (request.student) {
+      return `${request.student.first_name} ${request.student.last_name}`;
+    }
+
+    // Try to find student by various ID field names
+    const studentId = request.student_id || request.studentId;
+    if (studentId) {
+      const student = students.find((s) => s._id === studentId);
+      if (student) {
+        return `${student.first_name} ${student.last_name}`;
+      }
+    }
+
+    return "N/A";
+  };
+
+  // Helper function to get medicine request status based on dates
+  const getMedicineRequestStatus = (request) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+
+    const startDateValue = request.startDate || request.start_date;
+    const endDateValue = request.endDate || request.end_date;
+
+    if (!startDateValue || !endDateValue) {
+      return { text: "Không xác định", color: colors.textSecondary };
+    }
+
+    const startDate = new Date(startDateValue);
+    const endDate = new Date(endDateValue);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    if (today < startDate) {
+      // Not started yet
+      return { text: "Chưa tới ngày", color: colors.warning };
+    } else if (today >= startDate && today <= endDate) {
+      // In progress
+      return { text: "Đang thực hiện", color: colors.primary };
+    } else {
+      // Completed
+      return { text: "Đã hoàn thành", color: colors.success };
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("vi-VN");
+  };
+
+  // Medicine request modal helper functions
+  const getSelectedStudentInfo = () => {
+    if (!selectedStudent) return null;
+
+    const student = students.find((s) => s._id === selectedStudent);
+    return student;
+  };
+
+  const validateMedicines = () => {
+    return medicines.every(
+      (medicine) =>
+        medicine.name.trim() !== "" &&
+        medicine.dosage.trim() !== "" &&
+        medicine.frequency.trim() !== ""
+    );
+  };
+
+  const updateMedicine = (index, field, value) => {
+    const newMedicines = [...medicines];
+    newMedicines[index][field] = value;
+    setMedicines(newMedicines);
+  };
+
+  const addMedicine = () => {
+    setMedicines([
+      ...medicines,
+      { name: "", dosage: "", frequency: "", notes: "" },
+    ]);
+  };
+
+  const removeMedicine = (index) => {
+    if (medicines.length > 1) {
+      const newMedicines = medicines.filter((_, i) => i !== index);
+      setMedicines(newMedicines);
+    }
+  };
+
+  const resetForm = () => {
+    setSelectedStudent(null);
+    setMedicines([{ name: "", dosage: "", frequency: "", notes: "" }]);
+    setStartDate(getDefaultStartDate());
+    setEndDate(getDefaultEndDate());
+    setEditingRequest(null);
+    setStudentSearchQuery("");
+  };
+
+  const handleStudentSelect = (studentId) => {
+    setSelectedStudent(studentId);
+    setIsStudentPickerVisible(false);
+  };
+
+  const getFilteredStudents = () => {
+    return students.filter((student) =>
+      `${student.first_name} ${student.last_name}`
+        .toLowerCase()
+        .includes(studentSearchQuery.toLowerCase())
+    );
+  };
+
+  const canEditRequest = (request) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDateValue = request.startDate || request.start_date;
+    if (!startDateValue) return false;
+    const startDate = new Date(startDateValue);
+    startDate.setHours(0, 0, 0, 0);
+    return startDate >= today;
+  };
+
+  const formatDateForSummary = (date) => {
+    return date ? formatDate(date) : "";
+  };
+
+  const handleShowSummary = async () => {
+    setIsSummaryModalVisible(true);
+  };
+
+  const handleBackToEdit = () => {
+    setIsSummaryModalVisible(false);
+  };
+
+  const handleCreateRequest = async () => {
+    try {
+      const requestData = {
+        student_id: selectedStudent,
+        medicines: medicines,
+        start_date: startDate,
+        end_date: endDate,
+      };
+
+      await parentsAPI.createMedicineRequest(requestData);
+      await loadDashboardData(); // Refresh data
+      setIsModalVisible(false);
+      setIsSummaryModalVisible(false);
+      resetForm();
+      Alert.alert("Thành công", "Yêu cầu thuốc đã được tạo thành công");
+    } catch (error) {
+      console.error("Create request error:", error);
+      Alert.alert(
+        "Lỗi",
+        error.message || "Có lỗi xảy ra khi tạo yêu cầu thuốc"
+      );
+    }
+  };
+
+  const handleUpdateRequest = async () => {
+    try {
+      const updateData = {
+        student_id: selectedStudent,
+        medicines: medicines,
+        start_date: startDate,
+        end_date: endDate,
+      };
+
+      await parentsAPI.updateMedicineRequest(editingRequest._id, updateData);
+      await loadDashboardData(); // Refresh data
+      setIsModalVisible(false);
+      setIsSummaryModalVisible(false);
+      resetForm();
+      Alert.alert("Thành công", "Yêu cầu thuốc đã được cập nhật thành công");
+    } catch (error) {
+      console.error("Update request error:", error);
+      Alert.alert(
+        "Lỗi",
+        error.message || "Có lỗi xảy ra khi cập nhật yêu cầu thuốc"
+      );
+    }
+  };
+
+  const handleEditRequest = (request) => {
+    setEditingRequest(request);
+
+    // Set student - try multiple possible field names
+    const studentId =
+      request.student_id ||
+      request.studentId ||
+      (request.student && request.student._id);
+    setSelectedStudent(studentId);
+
+    // Set medicines - ensure we have a proper array
+    if (
+      request.medicines &&
+      Array.isArray(request.medicines) &&
+      request.medicines.length > 0
+    ) {
+      setMedicines(request.medicines);
+    } else {
+      // Default to single medicine if none provided
+      setMedicines([{ name: "", dosage: "", frequency: "", notes: "" }]);
+    }
+
+    // Set dates
+    if (request.startDate || request.start_date) {
+      setStartDate(new Date(request.startDate || request.start_date));
+    } else {
+      setStartDate(getDefaultStartDate());
+    }
+
+    if (request.endDate || request.end_date) {
+      setEndDate(new Date(request.endDate || request.end_date));
+    } else {
+      setEndDate(getDefaultEndDate());
+    }
+
+    setIsDetailModalVisible(false);
+    setIsModalVisible(true);
+  };
+
+  const handleDeleteRequest = (request) => {
+    Alert.alert(
+      "Xác nhận xóa",
+      "Bạn có chắc chắn muốn xóa yêu cầu thuốc này?",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await parentsAPI.deleteMedicineRequest(request._id);
+              await loadDashboardData(); // Refresh data
+              setIsDetailModalVisible(false);
+              Alert.alert("Thành công", "Yêu cầu thuốc đã được xóa");
+            } catch (error) {
+              console.error("Delete request error:", error);
+              Alert.alert(
+                "Lỗi",
+                error.message || "Có lỗi xảy ra khi xóa yêu cầu thuốc"
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRequestPress = (request) => {
+    setSelectedRequest(request);
+    setIsDetailModalVisible(true);
+  };
+
+  const handleCreateNewRequest = () => {
+    resetForm();
+    setIsModalVisible(true);
   };
 
   const DashboardCard = ({
@@ -127,10 +418,10 @@ const ParentDashboard = ({ navigation }) => {
         <Text style={styles.sectionTitle}>Thao tác nhanh</Text>
         <View style={styles.cardGrid}>
           <DashboardCard
-            title="Yêu cầu thuốc"
+            title="Tạo yêu cầu thuốc"
             icon="medical"
             backgroundColor="#e74c3c"
-            onPress={() => navigation.navigate("MedicineRequests")}
+            onPress={handleCreateNewRequest}
           />
           <DashboardCard
             title="Hồ sơ sức khỏe"
@@ -164,34 +455,45 @@ const ParentDashboard = ({ navigation }) => {
           </TouchableOpacity>
         </View>
         {medicineRequests.slice(0, 3).map((request, index) => (
-          <View key={index} style={styles.listItem}>
-            <View style={styles.listItemContent}>
-              <Text style={styles.listItemTitle}>
-                {request.medicines?.[0]?.name ||
-                  request.medicine_name ||
-                  "Thuốc"}
+          <TouchableOpacity
+            key={index}
+            style={styles.requestCard}
+            onPress={() => handleRequestPress(request)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.requestHeader}>
+              <View style={styles.requestInfo}>
+                <View style={styles.headerRow}>
+                  <Text style={styles.studentName}>
+                    {getStudentName(request)}
+                  </Text>
+                  <Text style={styles.requestDate}>
+                    {formatDate(request.createdAt)}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.medicineRequestStatusText,
+                    { color: getMedicineRequestStatus(request).color },
+                  ]}
+                >
+                  {getMedicineRequestStatus(request).text}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.requestDetails}>
+              <Text style={styles.detailText}>
+                Số loại thuốc: {request.medicines?.length || 1}
               </Text>
-              <Text style={styles.listItemSubtext}>
-                {formatDate(request.createdAt)}
+              <Text style={styles.detailText}>
+                Bắt đầu: {formatDate(request.startDate || request.start_date)}
+              </Text>
+              <Text style={styles.detailText}>
+                Kết thúc: {formatDate(request.endDate || request.end_date)}
               </Text>
             </View>
-            <View
-              style={[
-                styles.statusBadge,
-                { backgroundColor: getStatusColor(request.status) },
-              ]}
-            >
-              <Text style={styles.statusText}>
-                {request.status === "pending"
-                  ? "Chờ duyệt"
-                  : request.status === "approved"
-                  ? "Đã duyệt"
-                  : request.status === "rejected"
-                  ? "Từ chối"
-                  : "Hoàn thành"}
-              </Text>
-            </View>
-          </View>
+          </TouchableOpacity>
         ))}
         {medicineRequests.length === 0 && (
           <Text style={styles.emptyText}>Chưa có yêu cầu thuốc nào</Text>
@@ -222,7 +524,7 @@ const ParentDashboard = ({ navigation }) => {
               style={[
                 styles.statusBadge,
                 {
-                  backgroundColor: getStatusColor(
+                  backgroundColor: getConsultationStatusColor(
                     consultation.status.toLowerCase()
                   ),
                 },
@@ -281,6 +583,54 @@ const ParentDashboard = ({ navigation }) => {
           </Text>
         )}
       </View>
+
+      {/* Medicine Request Modals */}
+      <MedicineRequestModals
+        // Modal visibility states
+        isModalVisible={isModalVisible}
+        isStudentPickerVisible={isStudentPickerVisible}
+        isDetailModalVisible={isDetailModalVisible}
+        isSummaryModalVisible={isSummaryModalVisible}
+        // State setters
+        setIsModalVisible={setIsModalVisible}
+        setIsStudentPickerVisible={setIsStudentPickerVisible}
+        setIsDetailModalVisible={setIsDetailModalVisible}
+        setIsSummaryModalVisible={setIsSummaryModalVisible}
+        // Data
+        editingRequest={editingRequest}
+        selectedStudent={selectedStudent}
+        students={students}
+        medicines={medicines}
+        startDate={startDate}
+        endDate={endDate}
+        selectedRequest={selectedRequest}
+        studentSearchQuery={studentSearchQuery}
+        // State setters for data
+        setEditingRequest={setEditingRequest}
+        setStudentSearchQuery={setStudentSearchQuery}
+        // Functions
+        getSelectedStudentInfo={getSelectedStudentInfo}
+        validateMedicines={validateMedicines}
+        updateMedicine={updateMedicine}
+        addMedicine={addMedicine}
+        removeMedicine={removeMedicine}
+        setStartDate={setStartDate}
+        setEndDate={setEndDate}
+        handleShowSummary={handleShowSummary}
+        resetForm={resetForm}
+        handleStudentSelect={handleStudentSelect}
+        getFilteredStudents={getFilteredStudents}
+        canEditRequest={canEditRequest}
+        getMedicineRequestStatus={getMedicineRequestStatus}
+        getStudentName={getStudentName}
+        formatDate={formatDate}
+        handleEditRequest={handleEditRequest}
+        handleDeleteRequest={handleDeleteRequest}
+        formatDateForSummary={formatDateForSummary}
+        handleBackToEdit={handleBackToEdit}
+        handleCreateRequest={handleCreateRequest}
+        handleUpdateRequest={handleUpdateRequest}
+      />
     </ScrollView>
   );
 };
@@ -396,6 +746,59 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: "italic",
     marginVertical: 20,
+  },
+  requestCard: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  requestHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10,
+  },
+  requestInfo: {
+    flex: 1,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  studentName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: colors.text,
+    flex: 1,
+  },
+  requestDate: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: "500",
+  },
+  medicineRequestStatusText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    marginTop: 4,
+  },
+  requestDetails: {
+    marginBottom: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: 2,
   },
 });
 

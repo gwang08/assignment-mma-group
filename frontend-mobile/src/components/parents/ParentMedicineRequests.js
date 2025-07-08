@@ -7,14 +7,11 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
-  Modal,
-  TextInput,
-  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../styles/colors";
 import { parentsAPI } from "../../services/parentsAPI";
-import DatePickerField from "../common/DatePickerField";
+import MedicineRequestModals from "../common/MedicineRequestModals";
 
 const ParentMedicineRequests = () => {
   const [loading, setLoading] = useState(true);
@@ -252,6 +249,35 @@ const ParentMedicineRequests = () => {
 
     // Can edit if start date is today or in the future
     return startDate > today;
+  };
+
+  // Helper function to get medicine request status based on dates
+  const getMedicineRequestStatus = (request) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+
+    const startDateValue = request.startDate || request.start_date;
+    const endDateValue = request.endDate || request.end_date;
+
+    if (!startDateValue || !endDateValue) {
+      return { text: "Không xác định", color: colors.textSecondary };
+    }
+
+    const startDate = new Date(startDateValue);
+    const endDate = new Date(endDateValue);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+
+    if (today < startDate) {
+      // Not started yet
+      return { text: "Chưa tới ngày", color: colors.warning };
+    } else if (today >= startDate && today <= endDate) {
+      // In progress
+      return { text: "Đang thực hiện", color: colors.primary };
+    } else {
+      // Completed
+      return { text: "Đã hoàn thành", color: colors.success };
+    }
   };
 
   const loadData = async () => {
@@ -494,6 +520,14 @@ const ParentMedicineRequests = () => {
                 {formatDate(item.createdAt)}
               </Text>
             </View>
+            <Text
+              style={[
+                styles.statusText,
+                { color: getMedicineRequestStatus(item).color },
+              ]}
+            >
+              {getMedicineRequestStatus(item).text}
+            </Text>
           </View>
         </View>
 
@@ -548,819 +582,53 @@ const ParentMedicineRequests = () => {
         }
       />
 
-      {/* Create/Edit Modal */}
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingRequest ? "Cập nhật yêu cầu thuốc" : "Tạo yêu cầu thuốc"}
-            </Text>
-
-            <ScrollView
-              style={styles.modalScrollView}
-              showsVerticalScrollIndicator={true}
-            >
-              {!showSummary && (
-                <>
-                  <Text style={styles.label}>Chọn học sinh:</Text>
-                  <View style={styles.modernStudentPickerContainer}>
-                    {students.length === 0 ? (
-                      <View style={styles.noStudentsContainer}>
-                        <Ionicons
-                          name="people-outline"
-                          size={48}
-                          color={colors.lightGray}
-                        />
-                        <Text style={styles.noStudentsText}>
-                          Không có học sinh nào
-                        </Text>
-                        <Text style={styles.noStudentsSubtext}>
-                          Vui lòng thêm học sinh trước khi tạo yêu cầu
-                        </Text>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        style={[
-                          styles.modernStudentPicker,
-                          selectedStudent && styles.modernStudentPickerSelected,
-                        ]}
-                        onPress={() => setIsStudentPickerVisible(true)}
-                        disabled={!!editingRequest}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.modernStudentPickerContent}>
-                          {selectedStudent ? (
-                            <View style={styles.selectedStudentDisplay}>
-                              <View
-                                style={[
-                                  styles.studentPickerAvatar,
-                                  styles.studentPickerAvatarSelected,
-                                ]}
-                              >
-                                <Text style={styles.selectedStudentAvatarText}>
-                                  {getSelectedStudentInfo()?.first_name?.charAt(
-                                    0
-                                  )}
-                                  {getSelectedStudentInfo()?.last_name?.charAt(
-                                    0
-                                  )}
-                                </Text>
-                              </View>
-                              <View style={styles.selectedStudentInfo}>
-                                <Text style={styles.selectedStudentName}>
-                                  {getSelectedStudentInfo()?.first_name}{" "}
-                                  {getSelectedStudentInfo()?.last_name}
-                                </Text>
-                                <Text style={styles.selectedStudentClass}>
-                                  {getSelectedStudentInfo()?.class_name ||
-                                    "Chưa có lớp"}
-                                </Text>
-                              </View>
-                            </View>
-                          ) : (
-                            <View style={styles.unselectedStudentDisplay}>
-                              <View style={styles.unselectedStudentIcon}>
-                                <Ionicons
-                                  name="person-add-outline"
-                                  size={24}
-                                  color={colors.primary}
-                                />
-                              </View>
-                              <View style={styles.unselectedStudentInfo}>
-                                <Text style={styles.unselectedStudentText}>
-                                  Chọn học sinh
-                                </Text>
-                                <Text style={styles.unselectedStudentSubtext}>
-                                  Nhấn để chọn từ {students.length} học sinh
-                                </Text>
-                              </View>
-                              <View style={styles.unselectedStudentArrow}>
-                                <Ionicons
-                                  name="chevron-down"
-                                  size={20}
-                                  color={colors.textSecondary}
-                                />
-                              </View>
-                            </View>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <View style={styles.medicineSection}>
-                    <View style={styles.medicineSectionHeader}>
-                      <Text style={styles.medicineSectionTitle}>
-                        <Ionicons
-                          name="medical"
-                          size={18}
-                          color={colors.primary}
-                        />{" "}
-                        Danh sách thuốc
-                      </Text>
-                      <View style={styles.medicineCounter}>
-                        <Text style={styles.medicineCounterText}>
-                          {medicines.length}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <Text style={styles.medicineListHelper}>
-                      {medicines.length === 1
-                        ? "Thêm thông tin thuốc cần dùng cho học sinh"
-                        : `Đang có ${medicines.length} loại thuốc trong yêu cầu này`}
-                    </Text>
-
-                    {/* Validation Helper */}
-                    <View
-                      style={[
-                        styles.validationHelper,
-                        validateMedicines()
-                          ? styles.validationHelperSuccess
-                          : styles.validationHelperWarning,
-                      ]}
-                    >
-                      <Text style={styles.validationText}>
-                        {validateMedicines() ? (
-                          <Text style={styles.validationSuccess}>
-                            <Ionicons
-                              name="checkmark-circle"
-                              size={16}
-                              color={colors.success}
-                            />{" "}
-                            Tất cả thông tin thuốc đã đầy đủ và hợp lệ
-                          </Text>
-                        ) : (
-                          <Text style={styles.validationWarning}>
-                            <Ionicons
-                              name="warning-outline"
-                              size={16}
-                              color={colors.warning}
-                            />{" "}
-                            Vui lòng điền đầy đủ: tên thuốc, liều lượng và tần
-                            suất cho tất cả các thuốc
-                          </Text>
-                        )}
-                      </Text>
-                    </View>
-                  </View>
-                  {medicines.map((medicine, index) => (
-                    <View key={index} style={styles.medicineCard}>
-                      <View style={styles.medicineHeader}>
-                        <View style={styles.medicineIndexContainer}>
-                          <Ionicons
-                            name="medical"
-                            size={16}
-                            color={colors.primary}
-                          />
-                          <Text style={styles.medicineIndex}>
-                            Thuốc {index + 1}
-                          </Text>
-                        </View>
-                        {medicines.length > 1 && (
-                          <TouchableOpacity
-                            style={styles.removeMedicineButton}
-                            onPress={() => removeMedicine(index)}
-                            hitSlop={{
-                              top: 10,
-                              bottom: 10,
-                              left: 10,
-                              right: 10,
-                            }}
-                          >
-                            <Ionicons
-                              name="trash"
-                              size={24}
-                              color={colors.error}
-                            />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-
-                      <View style={styles.medicineInputRow}>
-                        <View style={styles.medicineInputColumn}>
-                          <Text style={styles.subLabel}>
-                            <Ionicons
-                              name="medical-outline"
-                              size={14}
-                              color={colors.primary}
-                            />{" "}
-                            Tên thuốc *
-                          </Text>
-                          <TextInput
-                            style={[styles.input, styles.medicineInput]}
-                            value={medicine.name}
-                            onChangeText={(value) =>
-                              updateMedicine(index, "name", value)
-                            }
-                            placeholder="Paracetamol"
-                          />
-                        </View>
-                      </View>
-
-                      <View style={styles.medicineInputRow}>
-                        <View style={styles.medicineInputColumn}>
-                          <Text style={styles.subLabel}>
-                            <Ionicons
-                              name="scale-outline"
-                              size={14}
-                              color={colors.primary}
-                            />{" "}
-                            Liều lượng *
-                          </Text>
-                          <TextInput
-                            style={[styles.input, styles.medicineInput]}
-                            value={medicine.dosage}
-                            onChangeText={(value) =>
-                              updateMedicine(index, "dosage", value)
-                            }
-                            placeholder="1 viên, 5ml"
-                          />
-                        </View>
-                        <View style={styles.medicineInputColumn}>
-                          <Text style={styles.subLabel}>
-                            <Ionicons
-                              name="time-outline"
-                              size={14}
-                              color={colors.primary}
-                            />{" "}
-                            Tần suất *
-                          </Text>
-                          <TextInput
-                            style={[styles.input, styles.medicineInput]}
-                            value={medicine.frequency}
-                            onChangeText={(value) =>
-                              updateMedicine(index, "frequency", value)
-                            }
-                            placeholder="3 lần/ngày"
-                          />
-                        </View>
-                      </View>
-
-                      <View style={styles.medicineInputRow}>
-                        <View style={styles.medicineInputColumn}>
-                          <Text style={styles.subLabel}>
-                            <Ionicons
-                              name="document-text-outline"
-                              size={14}
-                              color={colors.primary}
-                            />{" "}
-                            Ghi chú
-                          </Text>
-                          <TextInput
-                            style={[
-                              styles.input,
-                              styles.textArea,
-                              styles.medicineInput,
-                            ]}
-                            value={medicine.notes}
-                            onChangeText={(value) =>
-                              updateMedicine(index, "notes", value)
-                            }
-                            placeholder="Ghi chú thêm về cách dùng thuốc"
-                            multiline
-                            numberOfLines={2}
-                          />
-                        </View>
-                      </View>
-
-                      {/* Validation indicator */}
-                      {medicine.name.trim() !== "" &&
-                        medicine.dosage.trim() !== "" &&
-                        medicine.frequency.trim() !== "" && (
-                          <View style={styles.medicineValidIndicator}>
-                            <Ionicons
-                              name="checkmark-circle"
-                              size={16}
-                              color={colors.success}
-                            />
-                            <Text style={styles.medicineValidText}>
-                              Thông tin đầy đủ
-                            </Text>
-                          </View>
-                        )}
-                    </View>
-                  ))}
-
-                  <TouchableOpacity
-                    style={styles.addMedicineButton}
-                    onPress={addMedicine}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.addMedicineButtonContent}>
-                      <View style={styles.addMedicineButtonIcon}>
-                        <Ionicons name="add" size={20} color={colors.primary} />
-                      </View>
-                      <View style={styles.addMedicineButtonInfo}>
-                        <Text style={styles.addMedicineButtonText}>
-                          Thêm loại thuốc khác
-                        </Text>
-                        <Text style={styles.addMedicineButtonSubtext}>
-                          Nhấn để thêm thuốc vào danh sách
-                        </Text>
-                      </View>
-                      <View style={styles.addMedicineButtonArrow}>
-                        <Ionicons
-                          name="chevron-forward"
-                          size={16}
-                          color={colors.textSecondary}
-                        />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-
-                  <View style={styles.datePickerSection}>
-                    <Text style={styles.sectionTitle}>
-                      <Ionicons
-                        name="calendar-outline"
-                        size={16}
-                        color={colors.primary}
-                      />{" "}
-                      Thời gian sử dụng thuốc
-                    </Text>
-                    <Text style={styles.sectionSubtitle}>
-                      Chọn ngày bắt đầu và ngày kết thúc sử dụng thuốc
-                    </Text>
-
-                    <View style={styles.datePickerRow}>
-                      <View style={styles.datePickerColumn}>
-                        <Text style={styles.subLabel}>
-                          <Ionicons
-                            name="play-outline"
-                            size={14}
-                            color={colors.primary}
-                          />{" "}
-                          Ngày bắt đầu *
-                        </Text>
-                        <DatePickerField
-                          value={startDate}
-                          placeholder="Chọn ngày bắt đầu"
-                          onDateChange={setStartDate}
-                          includeToday={false}
-                          dateRange="future"
-                          title="Chọn ngày bắt đầu sử dụng thuốc"
-                          style={styles.datePicker}
-                        />
-                      </View>
-
-                      <View style={styles.datePickerColumn}>
-                        <Text style={styles.subLabel}>
-                          <Ionicons
-                            name="stop-outline"
-                            size={14}
-                            color={colors.primary}
-                          />{" "}
-                          Ngày kết thúc *
-                        </Text>
-                        <DatePickerField
-                          value={endDate}
-                          placeholder="Chọn ngày kết thúc"
-                          onDateChange={setEndDate}
-                          includeToday={false}
-                          dateRange="future"
-                          title="Chọn ngày kết thúc sử dụng thuốc"
-                          style={styles.datePicker}
-                        />
-                      </View>
-                    </View>
-
-                    <View style={styles.dateInfoContainer}>
-                      <Ionicons
-                        name="information-circle-outline"
-                        size={16}
-                        color={colors.info}
-                      />
-                      <Text style={styles.dateInfoText}>
-                        {startDate && endDate
-                          ? startDate.toDateString() === endDate.toDateString()
-                            ? "Yêu cầu sử dụng thuốc trong một ngày"
-                            : `Yêu cầu sử dụng thuốc trong ${
-                                Math.ceil(
-                                  (endDate - startDate) / (1000 * 60 * 60 * 24)
-                                ) + 1
-                              } ngày`
-                          : "Chọn ngày bắt đầu và kết thúc để xem thời gian sử dụng"}
-                      </Text>
-                    </View>
-                  </View>
-                </>
-              )}
-            </ScrollView>
-
-            {/* Modal Buttons */}
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setIsModalVisible(false);
-                  setEditingRequest(null);
-                  resetForm();
-                }}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="close-outline" size={20} color={colors.text} />
-                <Text style={styles.cancelButtonText}>Hủy</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.previewButton]}
-                onPress={handleShowSummary}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="eye-outline" size={20} color="white" />
-                <Text style={styles.previewButtonText}>Xem trước</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Student Picker Modal */}
-      <Modal
-        visible={isStudentPickerVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsStudentPickerVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.studentPickerModal}>
-            <View style={styles.studentPickerHeader}>
-              <Text style={styles.studentPickerTitle}>Chọn học sinh</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setIsStudentPickerVisible(false)}
-              >
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.searchContainer}>
-              <View style={styles.searchInputContainer}>
-                <Ionicons
-                  name="search"
-                  size={20}
-                  color={colors.textSecondary}
-                />
-                <TextInput
-                  style={styles.searchInput}
-                  value={studentSearchQuery}
-                  onChangeText={setStudentSearchQuery}
-                  placeholder="Tìm kiếm học sinh..."
-                />
-                {studentSearchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setStudentSearchQuery("")}>
-                    <Ionicons
-                      name="close-circle"
-                      size={20}
-                      color={colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-
-            <ScrollView
-              style={styles.studentPickerList}
-              showsVerticalScrollIndicator={false}
-            >
-              {getFilteredStudents().length === 0 ? (
-                <View style={styles.noResultsContainer}>
-                  <Ionicons name="search" size={48} color={colors.lightGray} />
-                  <Text style={styles.noResultsText}>
-                    {studentSearchQuery
-                      ? "Không tìm thấy học sinh"
-                      : "Không có học sinh nào"}
-                  </Text>
-                  <Text style={styles.noResultsSubtext}>
-                    {studentSearchQuery
-                      ? "Thử từ khóa khác"
-                      : "Vui lòng thêm học sinh trước"}
-                  </Text>
-                </View>
-              ) : (
-                getFilteredStudents().map((student, index) => (
-                  <TouchableOpacity
-                    key={student._id}
-                    style={[
-                      styles.studentPickerItem,
-                      selectedStudent === student._id &&
-                        styles.studentPickerItemSelected,
-                      index === getFilteredStudents().length - 1 &&
-                        styles.studentPickerItemLast,
-                    ]}
-                    onPress={() => handleStudentSelect(student._id)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.studentPickerItemContent}>
-                      <View
-                        style={[
-                          styles.studentPickerAvatar,
-                          selectedStudent === student._id &&
-                            styles.studentPickerAvatarSelected,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.studentPickerAvatarText,
-                            selectedStudent === student._id &&
-                              styles.studentPickerAvatarTextSelected,
-                          ]}
-                        >
-                          {student.first_name?.charAt(0)}
-                          {student.last_name?.charAt(0)}
-                        </Text>
-                      </View>
-                      <View style={styles.studentPickerItemInfo}>
-                        <Text
-                          style={[
-                            styles.studentPickerItemName,
-                            selectedStudent === student._id &&
-                              styles.studentPickerItemNameSelected,
-                          ]}
-                        >
-                          {student.first_name} {student.last_name}
-                        </Text>
-                        <Text style={styles.studentPickerItemSubtext}>
-                          Lớp: {student.class_name || "Chưa có lớp"}
-                        </Text>
-                      </View>
-                      {selectedStudent === student._id && (
-                        <View style={styles.studentPickerItemSelected}>
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={24}
-                            color={colors.primary}
-                          />
-                        </View>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-
-            <View style={styles.studentPickerFooter}>
-              <TouchableOpacity
-                style={styles.studentPickerCancelButton}
-                onPress={() => setIsStudentPickerVisible(false)}
-              >
-                <Text style={styles.studentPickerCancelText}>Hủy</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Detail Modal */}
-      <Modal
-        visible={isDetailModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsDetailModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.detailModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.detailModalTitle}>
-                Chi tiết yêu cầu thuốc
-              </Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setIsDetailModalVisible(false)}
-              >
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            {selectedRequest && (
-              <ScrollView
-                style={styles.modalBody}
-                showsVerticalScrollIndicator={true}
-              >
-                {/* Action Buttons - positioned above student name */}
-                {canEditRequest(selectedRequest) && (
-                  <View style={styles.detailActionButtons}>
-                    <TouchableOpacity
-                      style={styles.smallEditButton}
-                      onPress={() => {
-                        setIsDetailModalVisible(false);
-                        handleEditRequest(selectedRequest);
-                      }}
-                    >
-                      <Ionicons
-                        name="pencil"
-                        size={16}
-                        color={colors.primary}
-                      />
-                      <Text style={styles.smallEditButtonText}>Chỉnh sửa</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.smallDeleteButton}
-                      onPress={() => {
-                        setIsDetailModalVisible(false);
-                        handleDeleteRequest(selectedRequest);
-                      }}
-                    >
-                      <Ionicons name="trash" size={16} color={colors.error} />
-                      <Text style={styles.smallDeleteButtonText}>Xóa</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Học sinh</Text>
-                  <Text style={styles.detailValue}>
-                    {getStudentName(selectedRequest)}
-                  </Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Ngày tạo</Text>
-                  <Text style={styles.detailValue}>
-                    {formatDate(selectedRequest.createdAt)}
-                  </Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Thời gian sử dụng</Text>
-                  <Text style={styles.detailValue}>
-                    {formatDate(
-                      selectedRequest.startDate || selectedRequest.start_date
-                    )}{" "}
-                    -{" "}
-                    {formatDate(
-                      selectedRequest.endDate || selectedRequest.end_date
-                    )}
-                  </Text>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailLabel}>Danh sách thuốc</Text>
-                  {(selectedRequest.medicines &&
-                  selectedRequest.medicines.length > 0
-                    ? selectedRequest.medicines
-                    : [
-                        {
-                          name: selectedRequest.medicine_name || "N/A",
-                          dosage: selectedRequest.dosage || "N/A",
-                          frequency: selectedRequest.frequency || "N/A",
-                          notes: selectedRequest.instructions || "",
-                        },
-                      ]
-                  ).map((medicine, index) => (
-                    <View key={index} style={styles.medicineDetailCard}>
-                      <Text style={styles.medicineDetailName}>
-                        {medicine.name}
-                      </Text>
-                      <Text style={styles.medicineDetailText}>
-                        Liều lượng: {medicine.dosage}
-                      </Text>
-                      <Text style={styles.medicineDetailText}>
-                        Tần suất: {medicine.frequency}
-                      </Text>
-                      {medicine.notes && (
-                        <Text style={styles.medicineDetailText}>
-                          Ghi chú: {medicine.notes}
-                        </Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Summary Modal */}
-      <Modal
-        visible={isSummaryModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsSummaryModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.enhancedSummarySection}>
-              <View style={styles.summaryHeader}>
-                <View style={styles.summaryIcon}>
-                  <Ionicons name="document-text" size={20} color="white" />
-                </View>
-                <Text style={styles.summaryTitle}>Tóm tắt yêu cầu</Text>
-              </View>
-
-              <ScrollView
-                style={styles.modalScrollView}
-                showsVerticalScrollIndicator={true}
-              >
-                <View style={styles.summaryGrid}>
-                  <View style={styles.summaryCard}>
-                    <Ionicons name="person" size={16} color={colors.primary} />
-                    <Text style={styles.summaryCardLabel}>Học sinh</Text>
-                    <Text style={styles.summaryCardValue}>
-                      {getSelectedStudentInfo()?.first_name}{" "}
-                      {getSelectedStudentInfo()?.last_name}
-                    </Text>
-                  </View>
-
-                  <View
-                    style={[styles.summaryCard, styles.summaryCardVertical]}
-                  >
-                    <View style={styles.summaryCardHeader}>
-                      <Ionicons
-                        name="calendar"
-                        size={16}
-                        color={colors.primary}
-                      />
-                      <Text style={styles.summaryCardLabel}>
-                        Thời gian sử dụng
-                      </Text>
-                    </View>
-                    <Text style={styles.summaryCardValue}>
-                      {formatDateForSummary(startDate)} -{" "}
-                      {formatDateForSummary(endDate)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.summaryCard}>
-                    <Ionicons name="medical" size={16} color={colors.primary} />
-                    <Text style={styles.summaryCardLabel}>Chi tiết thuốc</Text>
-                    <Text style={styles.summaryCardValue}>
-                      {medicines.filter((m) => m.name.trim() !== "").length}{" "}
-                      loại
-                    </Text>
-                    <View style={styles.summaryMedicineList}>
-                      {medicines.map((medicine, index) => (
-                        <View key={index} style={styles.summaryMedicineItem}>
-                          <Text style={styles.summaryMedicineName}>
-                            {index + 1}. {medicine.name}
-                          </Text>
-                          <Text style={styles.summaryMedicineDetails}>
-                            Liều lượng: {medicine.dosage} • Tần suất:{" "}
-                            {medicine.frequency}
-                          </Text>
-                          {medicine.notes && (
-                            <Text style={styles.summaryMedicineNotes}>
-                              Ghi chú: {medicine.notes}
-                            </Text>
-                          )}
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                </View>
-              </ScrollView>
-
-              {/* Summary Action Buttons */}
-              <View style={styles.summaryActions}>
-                <TouchableOpacity
-                  style={[styles.summaryButton, styles.summaryBackButton]}
-                  onPress={handleBackToEdit}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name="chevron-back"
-                    size={20}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.summaryBackButtonText}>Quay lại</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.summaryButton, styles.summaryConfirmButton]}
-                  onPress={
-                    editingRequest ? handleUpdateRequest : handleCreateRequest
-                  }
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name={editingRequest ? "checkmark-done" : "send"}
-                    size={20}
-                    color="white"
-                  />
-                  <Text style={styles.summaryConfirmButtonText}>Xác nhận</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.summaryFooter}>
-                <Ionicons
-                  name="shield-checkmark"
-                  size={14}
-                  color={colors.success}
-                />
-                <Text style={styles.summaryFooterText}>
-                  Thông tin đã được kiểm tra và sẵn sàng gửi
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* All Medicine Request Modals */}
+      <MedicineRequestModals
+        // Modal visibility states
+        isModalVisible={isModalVisible}
+        isStudentPickerVisible={isStudentPickerVisible}
+        isDetailModalVisible={isDetailModalVisible}
+        isSummaryModalVisible={isSummaryModalVisible}
+        // State setters
+        setIsModalVisible={setIsModalVisible}
+        setIsStudentPickerVisible={setIsStudentPickerVisible}
+        setIsDetailModalVisible={setIsDetailModalVisible}
+        setIsSummaryModalVisible={setIsSummaryModalVisible}
+        // Data
+        editingRequest={editingRequest}
+        selectedStudent={selectedStudent}
+        students={students}
+        medicines={medicines}
+        startDate={startDate}
+        endDate={endDate}
+        selectedRequest={selectedRequest}
+        studentSearchQuery={studentSearchQuery}
+        // State setters for data
+        setEditingRequest={setEditingRequest}
+        setStudentSearchQuery={setStudentSearchQuery}
+        // Functions
+        getSelectedStudentInfo={getSelectedStudentInfo}
+        validateMedicines={validateMedicines}
+        updateMedicine={updateMedicine}
+        addMedicine={addMedicine}
+        removeMedicine={removeMedicine}
+        setStartDate={setStartDate}
+        setEndDate={setEndDate}
+        handleShowSummary={handleShowSummary}
+        resetForm={resetForm}
+        handleStudentSelect={handleStudentSelect}
+        getFilteredStudents={getFilteredStudents}
+        canEditRequest={canEditRequest}
+        getMedicineRequestStatus={getMedicineRequestStatus}
+        getStudentName={getStudentName}
+        formatDate={formatDate}
+        handleEditRequest={handleEditRequest}
+        handleDeleteRequest={handleDeleteRequest}
+        formatDateForSummary={formatDateForSummary}
+        handleBackToEdit={handleBackToEdit}
+        handleCreateRequest={handleCreateRequest}
+        handleUpdateRequest={handleUpdateRequest}
+      />
     </View>
   );
 };
@@ -1418,7 +686,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
   },
   medicineName: {
     fontSize: 18,
@@ -2459,6 +1726,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     marginLeft: 4,
+  },
+  statusContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  statusLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: "400",
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  detailStatusWarning: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.warningBackground || "#FFF3CD",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.warning,
+    marginBottom: 16,
+  },
+  detailStatusWarningMessage: {
+    fontSize: 14,
+    color: colors.warning,
+    fontWeight: "500",
+    marginLeft: 8,
+    flex: 1,
   },
 });
 
