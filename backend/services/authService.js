@@ -179,6 +179,93 @@ class AuthService {
       throw error;
     }
   }
+
+  /**
+   * Update user profile
+   * @param {String} userId - User ID
+   * @param {String} userType - Type of user
+   * @param {Object} updateData - Data to update
+   * @returns {Promise<Object>} - Updated user data
+   */
+  async updateProfile(userId, userType, updateData) {
+    try {
+      // Find user with the specified ID and role
+      const user = await User.findOne({
+        _id: userId,
+        role: userType,
+      });
+
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Define which fields are updatable for each role
+      const updatableFields = {
+        parent: [
+          "first_name",
+          "last_name",
+          "gender",
+          "dateOfBirth",
+          "address",
+          "email",
+          "phone_number",
+        ],
+        student: [
+          "first_name",
+          "last_name",
+          "gender",
+          "dateOfBirth",
+          "address",
+          "class_name",
+        ],
+        medicalStaff: [
+          "first_name",
+          "last_name",
+          "gender",
+          "dateOfBirth",
+          "address",
+          "email",
+          "phone_number",
+        ],
+        admin: [
+          "first_name",
+          "last_name",
+          "gender",
+          "dateOfBirth",
+          "address",
+          "email",
+          "phone_number",
+        ],
+      };
+
+      const allowedFields = updatableFields[userType] || [];
+
+      // Filter update data to only include allowed fields
+      const filteredUpdateData = {};
+      Object.keys(updateData).forEach((key) => {
+        if (allowedFields.includes(key) && updateData[key] !== undefined) {
+          filteredUpdateData[key] = updateData[key];
+        }
+      });
+
+      // If no valid fields to update
+      if (Object.keys(filteredUpdateData).length === 0) {
+        throw new Error("No valid fields provided for update");
+      }
+
+      // Update user with filtered data
+      Object.assign(user, filteredUpdateData);
+
+      // Save and validate
+      await user.save();
+
+      // Return updated user data without password
+      const updatedUser = user.getRoleData();
+      return updatedUser;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = new AuthService();

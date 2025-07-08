@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,78 +6,106 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../styles/colors';
-import { useAuth } from '../../context/AuthContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../styles/colors";
+import { useAuth } from "../../context/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import ProfileUpdateModal from "../common/ProfileUpdateModal";
 
 const ParentSettings = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateUser } = useAuth();
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất?',
-      [
-        {
-          text: 'Hủy',
-          style: 'cancel',
+    Alert.alert("Đăng xuất", "Bạn có chắc chắn muốn đăng xuất?", [
+      {
+        text: "Hủy",
+        style: "cancel",
+      },
+      {
+        text: "Đăng xuất",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await AsyncStorage.removeItem("userToken");
+            await AsyncStorage.removeItem("userInfo");
+            signOut();
+          } catch (error) {
+            console.error("Error signing out:", error);
+          }
         },
-        {
-          text: 'Đăng xuất',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await AsyncStorage.removeItem('userToken');
-              await AsyncStorage.removeItem('userInfo');
-              signOut();
-            } catch (error) {
-              console.error('Error signing out:', error);
-            }
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Chưa có thông tin';
+    if (!dateString) return "Chưa có thông tin";
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN');
+    return date.toLocaleDateString("vi-VN");
   };
 
   const formatAddress = (address) => {
-    if (!address) return 'Chưa có thông tin';
-    const parts = [address.street, address.city, address.state, address.country].filter(Boolean);
-    return parts.join(', ') || 'Chưa có thông tin';
+    if (!address) return "Chưa có thông tin";
+    const parts = [
+      address.street,
+      address.city,
+      address.state,
+      address.country,
+    ].filter(Boolean);
+    return parts.join(", ") || "Chưa có thông tin";
+  };
+
+  const handleProfileUpdate = (updatedUser) => {
+    // Update the user context with new data
+    if (updateUser) {
+      updateUser(updatedUser);
+    }
+    // Also update AsyncStorage
+    AsyncStorage.setItem("userData", JSON.stringify(updatedUser));
   };
 
   const SettingSection = ({ title, children }) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.sectionContent}>
-        {children}
-      </View>
+      <View style={styles.sectionContent}>{children}</View>
     </View>
   );
 
   const InfoRow = ({ label, value, icon }) => (
     <View style={styles.infoRow}>
       <View style={styles.infoLeft}>
-        {icon && <Ionicons name={icon} size={20} color={colors.primary} style={styles.infoIcon} />}
+        {icon && (
+          <Ionicons
+            name={icon}
+            size={20}
+            color={colors.primary}
+            style={styles.infoIcon}
+          />
+        )}
         <Text style={styles.infoLabel}>{label}</Text>
       </View>
       <Text style={styles.infoValue}>{value}</Text>
     </View>
   );
 
-  const ActionButton = ({ title, icon, onPress, color = colors.primary, textColor = 'white' }) => (
+  const ActionButton = ({
+    title,
+    icon,
+    onPress,
+    color = colors.primary,
+    textColor = "white",
+  }) => (
     <TouchableOpacity
       style={[styles.actionButton, { backgroundColor: color }]}
       onPress={onPress}
     >
-      <Ionicons name={icon} size={20} color={textColor} style={styles.actionIcon} />
+      <Ionicons
+        name={icon}
+        size={20}
+        color={textColor}
+        style={styles.actionIcon}
+      />
       <Text style={[styles.actionText, { color: textColor }]}>{title}</Text>
     </TouchableOpacity>
   );
@@ -100,22 +128,24 @@ const ParentSettings = () => {
 
         <InfoRow
           label="Tên đăng nhập"
-          value={user?.username || 'Chưa có'}
+          value={user?.username || "Chưa có"}
           icon="person-circle"
         />
-        <InfoRow
-          label="Email"
-          value={user?.email || 'Chưa có'}
-          icon="mail"
-        />
+        <InfoRow label="Email" value={user?.email || "Chưa có"} icon="mail" />
         <InfoRow
           label="Số điện thoại"
-          value={user?.phone_number || 'Chưa có'}
+          value={user?.phone_number || "Chưa có"}
           icon="call"
         />
         <InfoRow
           label="Giới tính"
-          value={user?.gender === 'male' ? 'Nam' : user?.gender === 'female' ? 'Nữ' : 'Khác'}
+          value={
+            user?.gender === "male"
+              ? "Nam"
+              : user?.gender === "female"
+              ? "Nữ"
+              : "Khác"
+          }
           icon="people"
         />
         <InfoRow
@@ -130,50 +160,21 @@ const ParentSettings = () => {
         />
       </SettingSection>
 
-      {/* Account Information */}
-      <SettingSection title="Thông tin tài khoản">
-        <InfoRow
-          label="Trạng thái"
-          value={user?.is_active ? 'Đang hoạt động' : 'Không hoạt động'}
-          icon="checkmark-circle"
-        />
-        <InfoRow
-          label="Lần đăng nhập cuối"
-          value={formatDate(user?.last_login)}
-          icon="time"
-        />
-        <InfoRow
-          label="Ngày tạo tài khoản"
-          value={formatDate(user?.createdAt)}
-          icon="add-circle"
-        />
-      </SettingSection>
-
       {/* Actions */}
       <SettingSection title="Thao tác">
         <ActionButton
           title="Cập nhật thông tin"
           icon="create"
-          onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')}
+          onPress={() => setShowProfileModal(true)}
           color={colors.primary}
         />
         <ActionButton
           title="Đổi mật khẩu"
           icon="key"
-          onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')}
+          onPress={() =>
+            Alert.alert("Thông báo", "Tính năng đang được phát triển")
+          }
           color={colors.warning}
-        />
-        <ActionButton
-          title="Trợ giúp"
-          icon="help-circle"
-          onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')}
-          color={colors.info}
-        />
-        <ActionButton
-          title="Liên hệ hỗ trợ"
-          icon="chatbubbles"
-          onPress={() => Alert.alert('Thông báo', 'Tính năng đang được phát triển')}
-          color={colors.success}
         />
       </SettingSection>
 
@@ -189,9 +190,19 @@ const ParentSettings = () => {
 
       {/* App Info */}
       <View style={styles.appInfo}>
-        <Text style={styles.appInfoText}>Ứng dụng quản lý sức khỏe học sinh</Text>
+        <Text style={styles.appInfoText}>
+          Ứng dụng quản lý sức khỏe học sinh
+        </Text>
         <Text style={styles.appVersion}>Phiên bản 1.0.0</Text>
       </View>
+
+      {/* Profile Update Modal */}
+      <ProfileUpdateModal
+        visible={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        user={user}
+        onUpdateSuccess={handleProfileUpdate}
+      />
     </ScrollView>
   );
 };
@@ -206,18 +217,18 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.text,
     paddingHorizontal: 20,
     paddingVertical: 15,
     backgroundColor: colors.lightGray,
   },
   sectionContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
   },
   profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -227,8 +238,8 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 15,
   },
   profileInfo: {
@@ -236,7 +247,7 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.text,
     marginBottom: 4,
   },
@@ -245,17 +256,17 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   infoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   infoIcon: {
@@ -264,24 +275,24 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 16,
     color: colors.text,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   infoValue: {
     fontSize: 16,
     color: colors.textSecondary,
-    textAlign: 'right',
+    textAlign: "right",
     flex: 1,
     marginLeft: 10,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 15,
     marginHorizontal: 20,
     marginVertical: 5,
     borderRadius: 8,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -291,26 +302,26 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   signOutSection: {
     marginVertical: 20,
   },
   appInfo: {
     padding: 20,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   appInfoText: {
     fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 5,
   },
   appVersion: {
     fontSize: 12,
     color: colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
 

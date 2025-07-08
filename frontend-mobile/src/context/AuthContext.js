@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { authAPI, storageAPI } from '../services/api';
+import React, { createContext, useContext, useReducer, useEffect } from "react";
+import { authAPI, storageAPI } from "../services/api";
 
 // Initial state
 const initialState = {
@@ -12,10 +12,11 @@ const initialState = {
 
 // Actions
 const AUTH_ACTIONS = {
-  RESTORE_TOKEN: 'RESTORE_TOKEN',
-  SIGN_IN: 'SIGN_IN',
-  SIGN_OUT: 'SIGN_OUT',
-  SET_LOADING: 'SET_LOADING',
+  RESTORE_TOKEN: "RESTORE_TOKEN",
+  SIGN_IN: "SIGN_IN",
+  SIGN_OUT: "SIGN_OUT",
+  SET_LOADING: "SET_LOADING",
+  UPDATE_USER: "UPDATE_USER",
 };
 
 // Reducer
@@ -53,6 +54,11 @@ function authReducer(prevState, action) {
         ...prevState,
         isLoading: action.loading,
       };
+    case AUTH_ACTIONS.UPDATE_USER:
+      return {
+        ...prevState,
+        user: action.user,
+      };
     default:
       return prevState;
   }
@@ -70,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     const bootstrapAsync = async () => {
       try {
         const { token, userData, userType } = await storageAPI.getUserData();
-        
+
         dispatch({
           type: AUTH_ACTIONS.RESTORE_TOKEN,
           token,
@@ -78,7 +84,7 @@ export const AuthProvider = ({ children }) => {
           userType,
         });
       } catch (e) {
-        console.error('Failed to restore token:', e);
+        console.error("Failed to restore token:", e);
         dispatch({
           type: AUTH_ACTIONS.RESTORE_TOKEN,
           token: null,
@@ -96,17 +102,17 @@ export const AuthProvider = ({ children }) => {
     signIn: async (username, password) => {
       try {
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: true });
-        
+
         // API mới chỉ cần username và password, backend tự nhận biết role
         const response = await authAPI.login(username, password);
-        
+
         if (response.success) {
           const { token, user } = response.data;
           const userType = user.role; // Lấy role từ user data trả về
-          
+
           // Lưu vào AsyncStorage
           await storageAPI.saveUserData(token, user, userType);
-          
+
           // Cập nhật state
           dispatch({
             type: AUTH_ACTIONS.SIGN_IN,
@@ -114,16 +120,16 @@ export const AuthProvider = ({ children }) => {
             user,
             userType,
           });
-          
+
           return { success: true };
         } else {
-          throw new Error(response.message || 'Login failed');
+          throw new Error(response.message || "Login failed");
         }
       } catch (error) {
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: false });
-        return { 
-          success: false, 
-          message: error.message || 'Network error' 
+        return {
+          success: false,
+          message: error.message || "Network error",
         };
       }
     },
@@ -131,22 +137,22 @@ export const AuthProvider = ({ children }) => {
     signUp: async (userData) => {
       try {
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: true });
-        
+
         // API mới mặc định tạo tài khoản parent
         const response = await authAPI.register(userData);
-        
+
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: false });
-        
+
         if (response.success) {
-          return { success: true, message: 'Registration successful' };
+          return { success: true, message: "Registration successful" };
         } else {
-          throw new Error(response.message || 'Registration failed');
+          throw new Error(response.message || "Registration failed");
         }
       } catch (error) {
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: false });
-        return { 
-          success: false, 
-          message: error.message || 'Network error' 
+        return {
+          success: false,
+          message: error.message || "Network error",
         };
       }
     },
@@ -156,10 +162,17 @@ export const AuthProvider = ({ children }) => {
         await authAPI.logout();
         dispatch({ type: AUTH_ACTIONS.SIGN_OUT });
       } catch (error) {
-        console.error('Sign out error:', error);
+        console.error("Sign out error:", error);
         // Vẫn đăng xuất dù có lỗi
         dispatch({ type: AUTH_ACTIONS.SIGN_OUT });
       }
+    },
+
+    updateUser: (updatedUser) => {
+      dispatch({
+        type: AUTH_ACTIONS.UPDATE_USER,
+        user: updatedUser,
+      });
     },
   };
 
@@ -174,7 +187,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

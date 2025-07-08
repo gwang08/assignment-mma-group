@@ -148,6 +148,62 @@ class AuthController {
       res.status(500).json({ success: false, message: "Server error" });
     }
   }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(req, res) {
+    try {
+      const updateData = req.body;
+
+      // Remove sensitive fields that shouldn't be updated via this endpoint
+      const forbiddenFields = [
+        "password",
+        "username",
+        "role",
+        "staff_role",
+        "student_id",
+        "is_active",
+      ];
+      forbiddenFields.forEach((field) => delete updateData[field]);
+
+      const updatedUser = await authService.updateProfile(
+        req.user._id,
+        req.userType,
+        updateData
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Profile updated successfully",
+        data: updatedUser,
+      });
+    } catch (error) {
+      console.error("Update profile error:", error);
+
+      if (error.message === "User not found") {
+        return res.status(404).json({ success: false, message: error.message });
+      }
+
+      if (error.message === "No valid fields provided for update") {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+
+      // Handle validation errors
+      if (error.name === "ValidationError") {
+        const validationErrors = Object.values(error.errors).map(
+          (err) => err.message
+        );
+        return res.status(400).json({
+          success: false,
+          message: "Validation error",
+          errors: validationErrors,
+        });
+      }
+
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  }
 }
 
 module.exports = new AuthController();
