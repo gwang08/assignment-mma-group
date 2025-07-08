@@ -2,7 +2,7 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL cho backend
-const BASE_URL = "http://192.168.1.241:3000"; // Thay IP này bằng IP thực của máy bạn
+const BASE_URL = "http://192.168.1.204:3000"; // Thay IP này bằng IP thực của máy bạn
 
 // Tạo instance của axios cho parent API
 const parentAPI = axios.create({

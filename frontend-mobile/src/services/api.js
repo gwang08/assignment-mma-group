@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL cho backend
 // Dùng IP của máy thay vì localhost cho mobile
-const BASE_URL = "http://192.168.1.241:3000"; // Thay IP này bằng IP thực của máy bạn
+const BASE_URL = "http://192.168.1.204:3000"; // Thay IP này bằng IP thực của máy bạn
 
 // Tạo instance của axios
 const api = axios.create({
@@ -37,7 +37,7 @@ api.interceptors.request.use(
 // Interceptor để xử lý response và lỗi
 api.interceptors.response.use(
   (response) => {
-    console.log("API Response:", response.status, response.config.url);
+    // console.log("API Response:", response.status, response.config.url);
     return response;
   },
   (error) => {
