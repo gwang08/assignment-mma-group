@@ -41,50 +41,95 @@ router.use((req, res, next) => authenticateAdmin(req, res, next));
  *         application/json:
  *           schema:
  *             type: object
+ *             description: |
+ *               Student information. Username and password will be auto-generated based on name and birth date.
+ *               Example: For name "Nguyen Phuc Tan" born on "2001-05-25", the generated username will be "tannp250501"
+ *             example:
+ *               {
+ *                 "first_name": "Nguyen",
+ *                 "last_name": "Phuc Tan",
+ *                 "class_name": "10A1",
+ *                 "gender": "male",
+ *                 "dateOfBirth": "2001-05-25",
+ *                 "address": {
+ *                   "street": "123 Nguyen Trai",
+ *                   "city": "Ho Chi Minh City",
+ *                   "state": "Ho Chi Minh",
+ *                   "postal_code": "700000",
+ *                   "country": "Vietnam"
+ *                 },
+ *                 "is_active": true
+ *               }
  *             required:
- *               - studentData
+ *               - first_name
+ *               - last_name
+ *               - class_name
+ *               - gender
+ *               - dateOfBirth
  *             properties:
- *               studentData:
+ *               first_name:
+ *                 type: string
+ *                 description: Student's first name (will be used to generate username)
+ *                 example: "Nguyen"
+ *               last_name:
+ *                 type: string
+ *                 description: Student's last name (will be used to generate username)
+ *                 example: "Phuc Tan"
+ *               class_name:
+ *                 type: string
+ *                 description: Class identifier (e.g., 10A1, 11B2)
+ *                 example: "10A1"
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *                 example: "male"
+ *               dateOfBirth:
+ *                 type: string
+ *                 format: date
+ *                 description: Birth date in YYYY-MM-DD format (will be used to generate username)
+ *                 example: "2001-05-25"
+ *               address:
  *                 type: object
- *                 description: |
- *                   Student information. Username and password will be auto-generated based on name and birth date.
- *                   Example: For name "Nguyen Phuc Tan" born on "2001-05-25", the generated username will be "tannp250501"
- *                 example:
- *                   {
- *                     "first_name": "Nguyen",
- *                     "last_name": "Phuc Tan",
- *                     "class_name": "10A1",
- *                     "gender": "male",
- *                     "dateOfBirth": "2001-05-25"
- *                   }
- *                 required:
- *                   - first_name
- *                   - last_name
- *                   - class_name
- *                   - gender
- *                   - dateOfBirth
+ *                 description: Student's address information
  *                 properties:
- *                   first_name:
+ *                   street:
  *                     type: string
- *                     description: Student's first name (will be used to generate username)
- *                     example: "Nguyen"
- *                   last_name:
+ *                     description: Street address
+ *                     example: "123 Nguyen Trai"
+ *                   city:
  *                     type: string
- *                     description: Student's last name (will be used to generate username)
- *                     example: "Phuc Tan"
- *                   class_name:
+ *                     description: City name
+ *                     example: "Ho Chi Minh City"
+ *                   state:
  *                     type: string
- *                     description: Class identifier (e.g., 10A1, 11B2)
- *                     example: "10A1"
- *                   gender:
+ *                     description: State or province
+ *                     example: "Ho Chi Minh"
+ *                   postal_code:
  *                     type: string
- *                     enum: [male, female, other]
- *                     example: "male"
- *                   dateOfBirth:
+ *                     description: Postal code
+ *                     example: "700000"
+ *                   country:
  *                     type: string
- *                     format: date
- *                     description: Birth date in YYYY-MM-DD format (will be used to generate username)
- *                     example: "2001-05-25"
+ *                     description: Country name
+ *                     example: "Vietnam"
+ *               is_active:
+ *                 type: boolean
+ *                 description: Whether the student account is active
+ *                 default: true
+ *                 example: true
+ *               phone_number:
+ *                 type: string
+ *                 description: Student's phone number
+ *                 example: "0123456789"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Student's email address
+ *                 example: "student@example.com"
+ *               student_id:
+ *                 type: string
+ *                 description: Custom student ID (optional, will be auto-generated if not provided)
+ *                 example: "STU2025001"
  *     responses:
  *       201:
  *         description: Student created successfully with auto-generated credentials
@@ -96,6 +141,9 @@ router.use((req, res, next) => authenticateAdmin(req, res, next));
  *                 success:
  *                   type: boolean
  *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Student created successfully"
  *                 data:
  *                   type: object
  *                   properties:
@@ -104,17 +152,6 @@ router.use((req, res, next) => authenticateAdmin(req, res, next));
  *                       description: |
  *                         Created student information including auto-generated username.
  *                         The password is set to the same as the username.
- *                       example: {
- *                         "_id": "60d5ecb8b5c9c62b3c7c1b9e",
- *                         "first_name": "Nguyen",
- *                         "last_name": "Phuc Tan",
- *                         "username": "tannp250501",
- *                         "class_name": "10A1",
- *                         "gender": "male",
- *                         "dateOfBirth": "2001-05-25",
- *                         "createdAt": "2025-06-27T10:30:00.000Z",
- *                         "updatedAt": "2025-06-27T10:30:00.000Z"
- *                       }
  *                       properties:
  *                         _id:
  *                           type: string
@@ -140,24 +177,81 @@ router.use((req, res, next) => authenticateAdmin(req, res, next));
  *                           type: string
  *                           format: date
  *                           example: "2001-05-25"
+ *                         address:
+ *                           type: object
+ *                           properties:
+ *                             street:
+ *                               type: string
+ *                               example: "123 Nguyen Trai"
+ *                             city:
+ *                               type: string
+ *                               example: "Ho Chi Minh City"
+ *                             state:
+ *                               type: string
+ *                               example: "Ho Chi Minh"
+ *                             postal_code:
+ *                               type: string
+ *                               example: "700000"
+ *                             country:
+ *                               type: string
+ *                               example: "Vietnam"
+ *                         is_active:
+ *                           type: boolean
+ *                           example: true
  *                         createdAt:
  *                           type: string
  *                           format: date-time
- *                           example: "2025-06-27T10:30:00.000Z"
+ *                           example: "2025-01-05T10:30:00.000Z"
  *                         updatedAt:
  *                           type: string
  *                           format: date-time
- *                           example: "2025-06-27T10:30:00.000Z"
+ *                           example: "2025-01-05T10:30:00.000Z"
  *                     healthProfileId:
  *                       type: string
  *                       description: ID of the created empty health profile
  *                       example: "60d5ecb8b5c9c62b3c7c1b9f"
  *       400:
- *         description: Missing required fields
+ *         description: Bad request - Missing required fields or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Missing required fields: first_name, last_name, class_name, gender, dateOfBirth"
  *       401:
- *         description: Not authenticated as admin
+ *         description: Unauthorized - Invalid or missing admin token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Access denied. Admin only."
  *       500:
- *         description: Server error
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Error creating student"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection failed"
  */
 router.post("/students", adminController.createStudent);
 

@@ -27,34 +27,25 @@ const medicineRequestSchema = new Schema(
       type: Date,
       validate: {
         validator: function (value) {
-          return value >= new Date() && value > this.startDate;
+          return value >= new Date() && value >= this.startDate;
         },
-        message: "End date cannot be in the past and must be after startDate",
+        message:
+          "End date cannot be in the past and must be on or after startDate",
       },
       required: true,
     },
-    medicines: [
-      {
-        _id: false,
-        name: {
-          type: String,
-          required: true,
+    medicines: {
+      type: [
+        {
+          _id: false,
+          name: { type: String, required: true },
+          dosage: { type: String, required: true },
+          frequency: { type: String, required: true },
+          notes: { type: String, default: "" },
         },
-        dosage: {
-          type: String,
-          required: true,
-        },
-        frequency: {
-          type: String,
-          required: true,
-        },
-        notes: {
-          type: String,
-          default: "",
-        },
-      },
-    ],
-
+      ],
+      required: true,
+    },
     status: {
       type: String,
       enum: ["pending", "approved", "rejected", "completed"],
