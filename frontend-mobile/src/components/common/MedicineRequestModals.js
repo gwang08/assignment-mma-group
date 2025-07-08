@@ -88,6 +88,23 @@ const MedicineRequestModals = ({
     }
   };
 
+  // Handle start date change and automatically set end date if it becomes invalid
+  const handleStartDateChange = (date) => {
+    setStartDate(date);
+    // If end date is earlier than the new start date, set end date to match start date
+    if (date && endDate && endDate < date) {
+      setEndDate(date);
+    }
+  };
+
+  const handleEndDateChange = (date) => {
+    setEndDate(date);
+    // If the new end date is earlier than start date, set end date to match start date
+    if (date && startDate && date < startDate) {
+      setEndDate(startDate);
+    }
+  };
+
   return (
     <>
       {/* Main Create/Edit Modal */}
@@ -104,8 +121,8 @@ const MedicineRequestModals = ({
         onMedicineUpdate={updateMedicine}
         onMedicineAdd={addMedicine}
         onMedicineRemove={removeMedicine}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate}
+        onStartDateChange={handleStartDateChange}
+        onEndDateChange={handleEndDateChange}
         onShowSummary={handleShowSummary}
         validateMedicines={validateMedicines}
         getSelectedStudentInfo={getSelectedStudentInfo}

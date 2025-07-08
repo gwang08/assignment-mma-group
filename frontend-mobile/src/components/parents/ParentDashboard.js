@@ -190,6 +190,92 @@ const ParentDashboard = ({ navigation }) => {
     );
   };
 
+  const validateDates = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      return {
+        valid: false,
+        message: "Ngày bắt đầu không thể là ngày trong quá khứ",
+      };
+    }
+
+    if (endDate < startDate) {
+      return {
+        valid: false,
+        message: "Ngày kết thúc không thể trước ngày bắt đầu",
+      };
+    }
+
+    return { valid: true };
+  };
+
+  const validateAllFormData = () => {
+    if (!selectedStudent) {
+      return { valid: false, message: "Vui lòng chọn học sinh" };
+    }
+
+    if (!validateMedicines()) {
+      return {
+        valid: false,
+        message:
+          "Vui lòng điền đầy đủ thông tin thuốc: Tên thuốc, Liều lượng và Tần suất",
+      };
+    }
+
+    return validateDates();
+  };
+
+  // Helper function to check for overlapping medicine requests
+  const checkOverlappingRequests = (
+    studentId,
+    requestStartDate,
+    requestEndDate,
+    excludeRequestId = null
+  ) => {
+    // Filter requests for the same student
+    const studentRequests = medicineRequests.filter((request) => {
+      // Skip the request being edited (for update scenarios)
+      if (excludeRequestId && request._id === excludeRequestId) {
+        return false;
+      }
+      // Check if the request belongs to the same student
+      const requestStudentId = request.student?._id || request.student_id;
+      return requestStudentId === studentId;
+    });
+
+    const newStart = new Date(requestStartDate);
+    const newEnd = new Date(requestEndDate);
+    newStart.setHours(0, 0, 0, 0);
+    newEnd.setHours(0, 0, 0, 0);
+
+    for (const existingRequest of studentRequests) {
+      const existingStartDate =
+        existingRequest.startDate || existingRequest.start_date;
+      const existingEndDate =
+        existingRequest.endDate || existingRequest.end_date;
+
+      const existingStart = new Date(existingStartDate);
+      const existingEnd = new Date(existingEndDate);
+      existingStart.setHours(0, 0, 0, 0);
+      existingEnd.setHours(0, 0, 0, 0);
+
+      // Check if the date ranges overlap
+      // Two ranges overlap if: start1 <= end2 && start2 <= end1
+      if (newStart <= existingEnd && existingStart <= newEnd) {
+        return {
+          hasOverlap: true,
+          overlappingRequest: existingRequest,
+          existingStart: existingStart,
+          existingEnd: existingEnd,
+        };
+      }
+    }
+
+    return { hasOverlap: false };
+  };
+
   const updateMedicine = (index, field, value) => {
     const newMedicines = [...medicines];
     newMedicines[index][field] = value;
@@ -207,16 +293,31 @@ const ParentDashboard = ({ navigation }) => {
     if (medicines.length > 1) {
       const newMedicines = medicines.filter((_, i) => i !== index);
       setMedicines(newMedicines);
+    } else {
+      Alert.alert("Lỗi", "Phải có ít nhất một loại thuốc");
     }
   };
 
   const resetForm = () => {
-    setSelectedStudent(null);
-    setMedicines([{ name: "", dosage: "", frequency: "", notes: "" }]);
-    setStartDate(getDefaultStartDate());
-    setEndDate(getDefaultEndDate());
-    setEditingRequest(null);
+    setSelectedStudent("");
     setStudentSearchQuery("");
+    setIsStudentPickerVisible(false);
+    setIsSummaryModalVisible(false);
+    setMedicines([
+      {
+        name: "",
+        dosage: "",
+        frequency: "",
+        notes: "",
+      },
+    ]);
+
+    // Set default dates to tomorrow (same day as start and end)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    setStartDate(tomorrow);
+    setEndDate(new Date(tomorrow)); // Same day as start date
   };
 
   const handleStudentSelect = (studentId) => {
@@ -247,6 +348,34 @@ const ParentDashboard = ({ navigation }) => {
   };
 
   const handleShowSummary = async () => {
+    const validation = validateAllFormData();
+    if (!validation.valid) {
+      Alert.alert("Lỗi", validation.message);
+      return;
+    }
+
+    // Check for overlapping requests
+    const overlapCheck = checkOverlappingRequests(
+      selectedStudent,
+      startDate,
+      endDate,
+      editingRequest?._id // Exclude current request if editing
+    );
+
+    if (overlapCheck.hasOverlap) {
+      const existingStartDate =
+        overlapCheck.existingStart.toLocaleDateString("vi-VN");
+      const existingEndDate =
+        overlapCheck.existingEnd.toLocaleDateString("vi-VN");
+
+      Alert.alert(
+        "Lỗi trùng lặp thời gian",
+        `Đã có yêu cầu cấp thuốc cho học sinh này trong khoảng thời gian từ ${existingStartDate} đến ${existingEndDate}. Vui lòng chọn thời gian khác.`,
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     setIsSummaryModalVisible(true);
   };
 
@@ -256,14 +385,27 @@ const ParentDashboard = ({ navigation }) => {
 
   const handleCreateRequest = async () => {
     try {
+      const validation = validateAllFormData();
+      if (!validation.valid) {
+        Alert.alert("Lỗi", validation.message);
+        return;
+      }
+
       const requestData = {
-        student_id: selectedStudent,
-        medicines: medicines,
-        start_date: startDate,
-        end_date: endDate,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        medicines: medicines.map((medicine) => ({
+          name: medicine.name.trim(),
+          dosage: medicine.dosage.trim(),
+          frequency: medicine.frequency.trim(),
+          notes: medicine.notes.trim() || "",
+        })),
       };
 
-      await parentsAPI.createMedicineRequest(requestData);
+      await parentsAPI.createMedicineRequestForStudent(
+        selectedStudent,
+        requestData
+      );
       await loadDashboardData(); // Refresh data
       setIsModalVisible(false);
       setIsSummaryModalVisible(false);
@@ -280,11 +422,26 @@ const ParentDashboard = ({ navigation }) => {
 
   const handleUpdateRequest = async () => {
     try {
+      if (!editingRequest) {
+        Alert.alert("Lỗi", "Không tìm thấy yêu cầu để cập nhật");
+        return;
+      }
+
+      const validation = validateAllFormData();
+      if (!validation.valid) {
+        Alert.alert("Lỗi", validation.message);
+        return;
+      }
+
       const updateData = {
-        student_id: selectedStudent,
-        medicines: medicines,
-        start_date: startDate,
-        end_date: endDate,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        medicines: medicines.map((medicine) => ({
+          name: medicine.name.trim(),
+          dosage: medicine.dosage.trim(),
+          frequency: medicine.frequency.trim(),
+          notes: medicine.notes.trim() || "",
+        })),
       };
 
       await parentsAPI.updateMedicineRequest(editingRequest._id, updateData);
@@ -375,6 +532,7 @@ const ParentDashboard = ({ navigation }) => {
   };
 
   const handleCreateNewRequest = () => {
+    setEditingRequest(null);
     resetForm();
     setIsModalVisible(true);
   };

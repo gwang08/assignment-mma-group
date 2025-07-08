@@ -132,10 +132,10 @@ const MedicineRequestDetailModal = ({
                 <View key={index} style={styles.medicineDetailCard}>
                   <Text style={styles.medicineDetailName}>{medicine.name}</Text>
                   <Text style={styles.medicineDetailText}>
-                    Liều lượng: {medicine.dosage}
+                    Liều lượng (1 lần): {medicine.dosage}
                   </Text>
                   <Text style={styles.medicineDetailText}>
-                    Tần suất: {medicine.frequency}
+                    Tần suất (1 ngày): {medicine.frequency}
                   </Text>
                   {medicine.notes && (
                     <Text style={styles.medicineDetailText}>

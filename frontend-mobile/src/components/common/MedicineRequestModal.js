@@ -235,7 +235,7 @@ const MedicineRequestModal = ({
                         size={14}
                         color={colors.primary}
                       />{" "}
-                      Liều lượng *
+                      Liều lượng (1 lần) *
                     </Text>
                     <TextInput
                       style={[styles.input, styles.medicineInput]}
@@ -253,7 +253,7 @@ const MedicineRequestModal = ({
                         size={14}
                         color={colors.primary}
                       />{" "}
-                      Tần suất *
+                      Tần suất (1 ngày) *
                     </Text>
                     <TextInput
                       style={[styles.input, styles.medicineInput]}
@@ -261,7 +261,7 @@ const MedicineRequestModal = ({
                       onChangeText={(value) =>
                         onMedicineUpdate(index, "frequency", value)
                       }
-                      placeholder="3 lần/ngày"
+                      placeholder="3 lần"
                     />
                   </View>
                 </View>

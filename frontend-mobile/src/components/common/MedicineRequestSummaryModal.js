@@ -83,8 +83,8 @@ const MedicineRequestSummaryModal = ({
                           {index + 1}. {medicine.name}
                         </Text>
                         <Text style={styles.summaryMedicineDetails}>
-                          Liều lượng: {medicine.dosage} • Tần suất:{" "}
-                          {medicine.frequency}
+                          Liều lượng (1 lần): {medicine.dosage} • Tần suất (1
+                          ngày): {medicine.frequency}
                         </Text>
                         {medicine.notes && (
                           <Text style={styles.summaryMedicineNotes}>
@@ -98,44 +98,46 @@ const MedicineRequestSummaryModal = ({
               </View>
             </ScrollView>
 
-            {/* Summary Action Buttons */}
-            <View style={styles.summaryActions}>
-              <TouchableOpacity
-                style={[styles.summaryButton, styles.summaryBackButton]}
-                onPress={onBackToEdit}
-                activeOpacity={0.8}
-              >
+            {/* Summary Action Buttons - Fixed at bottom */}
+            <View style={styles.summaryActionsContainer}>
+              <View style={styles.summaryFooter}>
                 <Ionicons
-                  name="chevron-back"
-                  size={20}
-                  color={colors.primary}
+                  name="shield-checkmark"
+                  size={12}
+                  color={colors.success}
                 />
-                <Text style={styles.summaryBackButtonText}>Quay lại</Text>
-              </TouchableOpacity>
+                <Text style={styles.summaryFooterText}>
+                  Thông tin đã được kiểm tra
+                </Text>
+              </View>
 
-              <TouchableOpacity
-                style={[styles.summaryButton, styles.summaryConfirmButton]}
-                onPress={onConfirm}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name={editingRequest ? "checkmark-done" : "send"}
-                  size={20}
-                  color="white"
-                />
-                <Text style={styles.summaryConfirmButtonText}>Xác nhận</Text>
-              </TouchableOpacity>
-            </View>
+              <View style={styles.summaryActions}>
+                <TouchableOpacity
+                  style={[styles.summaryButton, styles.summaryBackButton]}
+                  onPress={onBackToEdit}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={20}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.summaryBackButtonText}>Quay lại</Text>
+                </TouchableOpacity>
 
-            <View style={styles.summaryFooter}>
-              <Ionicons
-                name="shield-checkmark"
-                size={14}
-                color={colors.success}
-              />
-              <Text style={styles.summaryFooterText}>
-                Thông tin đã được kiểm tra và sẵn sàng gửi
-              </Text>
+                <TouchableOpacity
+                  style={[styles.summaryButton, styles.summaryConfirmButton]}
+                  onPress={onConfirm}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons
+                    name={editingRequest ? "checkmark-done" : "send"}
+                    size={20}
+                    color="white"
+                  />
+                  <Text style={styles.summaryConfirmButtonText}>Xác nhận</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -163,45 +165,65 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   enhancedSummarySection: {
-    padding: 20,
+    height: "100%",
+    backgroundColor: "white",
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    flexDirection: "column",
   },
   summaryHeader: {
+    backgroundColor: colors.primary,
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    padding: 16,
   },
   summaryIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   summaryTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
-    color: colors.text,
+    color: "white",
   },
   modalScrollView: {
-    maxHeight: "60%",
+    flex: 1,
   },
   summaryGrid: {
-    gap: 15,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    padding: 16,
+    paddingBottom: 8,
   },
   summaryCard: {
     backgroundColor: colors.background,
     borderRadius: 12,
-    padding: 15,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
+    padding: 12,
+    margin: 4,
+    flex: 1,
+    minWidth: "45%",
+    alignItems: "center",
+  },
+  summaryCardFull: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "center",
   },
   summaryCardVertical: {
-    // Additional styling for vertical cards if needed
+    width: "100%",
+    flexDirection: "column",
+    alignItems: "center",
   },
   summaryCardHeader: {
     flexDirection: "row",
@@ -209,61 +231,80 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summaryCardLabel: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
     color: colors.textSecondary,
-    marginLeft: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    marginTop: 4,
+    marginBottom: 2,
+    textAlign: "center",
   },
   summaryCardValue: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.text,
-    marginTop: 5,
-  },
-  summaryMedicineList: {
-    marginTop: 10,
-  },
-  summaryMedicineItem: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  summaryMedicineName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "bold",
     color: colors.text,
-    marginBottom: 5,
+    textAlign: "center",
+  },
+  summaryMedicineList: {
+    width: "100%",
+    marginTop: 10,
+    paddingVertical: 10,
+    borderTopWidth: 2,
+    borderTopColor: colors.primary + "30",
+  },
+  summaryMedicineItem: {
+    marginBottom: 8,
+    paddingLeft: 8,
+  },
+  summaryMedicineName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: colors.text,
+    marginBottom: 2,
   },
   summaryMedicineDetails: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 3,
+    marginBottom: 2,
   },
   summaryMedicineNotes: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
+    fontStyle: "italic",
+  },
+  summaryActionsContainer: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: "white",
+  },
+  summaryFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.info + "15",
+    padding: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  summaryFooterText: {
+    fontSize: 11,
+    color: colors.info,
+    marginLeft: 4,
     fontStyle: "italic",
   },
   summaryActions: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
-    marginBottom: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
   },
   summaryButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     borderRadius: 8,
-    flex: 1,
-    marginHorizontal: 5,
+    gap: 8,
   },
   summaryBackButton: {
     backgroundColor: colors.background,
@@ -272,34 +313,16 @@ const styles = StyleSheet.create({
   },
   summaryBackButtonText: {
     color: colors.primary,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
-    marginLeft: 8,
   },
   summaryConfirmButton: {
     backgroundColor: colors.primary,
   },
   summaryConfirmButtonText: {
     color: "white",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "600",
-    marginLeft: 8,
-  },
-  summaryFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: `${colors.success}20`,
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.success,
-  },
-  summaryFooterText: {
-    color: colors.success,
-    fontSize: 12,
-    fontWeight: "600",
-    marginLeft: 8,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,10 @@ import {
   RefreshControl,
   Modal,
   ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../styles/colors';
-import { parentsAPI } from '../../services/parentsAPI';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../styles/colors";
+import { parentsAPI } from "../../services/parentsAPI";
 
 const ParentCampaigns = () => {
   const [loading, setLoading] = useState(true);
@@ -29,10 +29,10 @@ const ParentCampaigns = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       const [campaignsResponse, studentsResponse] = await Promise.all([
         parentsAPI.getCampaigns(),
-        parentsAPI.getStudents()
+        parentsAPI.getStudents(),
       ]);
 
       if (campaignsResponse.success && campaignsResponse.data) {
@@ -44,8 +44,8 @@ const ParentCampaigns = () => {
         setStudents(studentData);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert('Lỗi', 'Có lỗi xảy ra khi tải dữ liệu');
+      console.error("Error loading data:", error);
+      Alert.alert("Lỗi", "Có lỗi xảy ra khi tải dữ liệu");
     } finally {
       setLoading(false);
     }
@@ -59,50 +59,50 @@ const ParentCampaigns = () => {
 
   const getCampaignTypeColor = (type) => {
     const colors = {
-      Vaccination: '#e74c3c',
-      Checkup: '#3498db',
-      Health_Check: '#27ae60',
-      Nutrition_Program: '#f39c12',
-      Mental_Health: '#9b59b6'
+      Vaccination: "#e74c3c",
+      Checkup: "#3498db",
+      Health_Check: "#27ae60",
+      Nutrition_Program: "#f39c12",
+      Mental_Health: "#9b59b6",
     };
-    return colors[type] || '#95a5a6';
+    return colors[type] || "#95a5a6";
   };
 
   const getCampaignTypeText = (type) => {
     const typeText = {
-      Vaccination: 'Tiêm chủng',
-      Checkup: 'Khám sức khỏe',
-      Health_Check: 'Kiểm tra sức khỏe',
-      Nutrition_Program: 'Chương trình dinh dưỡng',
-      Mental_Health: 'Sức khỏe tâm thần'
+      Vaccination: "Tiêm chủng",
+      Checkup: "Khám sức khỏe",
+      Health_Check: "Kiểm tra sức khỏe",
+      Nutrition_Program: "Chương trình dinh dưỡng",
+      Mental_Health: "Sức khỏe tâm thần",
     };
     return typeText[type] || type;
   };
 
   const getCampaignStatusColor = (status) => {
     const colors = {
-      draft: '#95a5a6',
-      active: '#27ae60',
-      completed: '#3498db',
-      cancelled: '#e74c3c'
+      draft: "#95a5a6",
+      active: "#27ae60",
+      completed: "#3498db",
+      cancelled: "#e74c3c",
     };
-    return colors[status] || '#95a5a6';
+    return colors[status] || "#95a5a6";
   };
 
   const getCampaignStatusText = (status) => {
     const statusText = {
-      draft: 'Nháp',
-      active: 'Đang diễn ra',
-      completed: 'Hoàn thành',
-      cancelled: 'Đã hủy'
+      draft: "Nháp",
+      active: "Đang diễn ra",
+      completed: "Hoàn thành",
+      cancelled: "Đã hủy",
     };
     return statusText[status] || status;
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Chưa có thông tin';
+    if (!dateString) return "Chưa có thông tin";
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN');
+    return date.toLocaleDateString("vi-VN");
   };
 
   const isDateInRange = (campaignDate, startDate, endDate) => {
@@ -121,18 +121,25 @@ const ParentCampaigns = () => {
     try {
       const consentData = {
         consent_given: consentGiven,
-        notes: consentGiven ? 'Đồng ý tham gia' : 'Không đồng ý tham gia'
+        notes: consentGiven ? "Đồng ý tham gia" : "Không đồng ý tham gia",
       };
 
-      const response = await parentsAPI.submitCampaignConsent(campaign._id, studentId, consentData);
+      const response = await parentsAPI.submitCampaignConsent(
+        campaign._id,
+        studentId,
+        consentData
+      );
       if (response.success) {
-        Alert.alert('Thành công', `Đã ${consentGiven ? 'đồng ý' : 'từ chối'} tham gia chiến dịch`);
+        Alert.alert(
+          "Thành công",
+          `Đã ${consentGiven ? "đồng ý" : "từ chối"} tham gia chiến dịch`
+        );
         loadData();
       } else {
-        Alert.alert('Lỗi', response.message || 'Có lỗi xảy ra');
+        Alert.alert("Lỗi", response.message || "Có lỗi xảy ra");
       }
     } catch (error) {
-      Alert.alert('Lỗi', 'Có lỗi xảy ra khi gửi phản hồi');
+      Alert.alert("Lỗi", "Có lỗi xảy ra khi gửi phản hồi");
     }
   };
 
@@ -142,23 +149,38 @@ const ParentCampaigns = () => {
         <View style={styles.campaignInfo}>
           <Text style={styles.campaignTitle}>{item.title}</Text>
           <Text style={styles.campaignDescription} numberOfLines={2}>
-            {item.description || 'Không có mô tả'}
+            {item.description || "Không có mô tả"}
           </Text>
           <Text style={styles.campaignDate}>
-            {formatDate(item.date || item.start_date)} - {formatDate(item.end_date)}
+            {formatDate(item.date || item.start_date)} -{" "}
+            {formatDate(item.end_date)}
           </Text>
         </View>
         <View style={styles.campaignBadges}>
-          <View style={[styles.typeBadge, { backgroundColor: getCampaignTypeColor(item.type) }]}>
-            <Text style={styles.badgeText}>{getCampaignTypeText(item.type)}</Text>
+          <View
+            style={[
+              styles.typeBadge,
+              { backgroundColor: getCampaignTypeColor(item.type) },
+            ]}
+          >
+            <Text style={styles.badgeText}>
+              {getCampaignTypeText(item.type)}
+            </Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: getCampaignStatusColor(item.status) }]}>
-            <Text style={styles.badgeText}>{getCampaignStatusText(item.status)}</Text>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getCampaignStatusColor(item.status) },
+            ]}
+          >
+            <Text style={styles.badgeText}>
+              {getCampaignStatusText(item.status)}
+            </Text>
           </View>
         </View>
       </View>
 
-      {item.requires_consent && item.status === 'active' && (
+      {item.requires_consent && item.status === "active" && (
         <View style={styles.consentSection}>
           <Text style={styles.consentTitle}>Yêu cầu xác nhận tham gia:</Text>
           {students.map((student) => (
@@ -205,12 +227,18 @@ const ParentCampaigns = () => {
         data={campaigns}
         renderItem={renderCampaignItem}
         keyExtractor={(item) => item._id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="shield-outline" size={64} color={colors.lightGray} />
+            <Ionicons
+              name="shield-outline"
+              size={64}
+              color={colors.lightGray}
+            />
             <Text style={styles.emptyText}>Chưa có chiến dịch nào</Text>
             <Text style={styles.emptySubtext}>
               Các chiến dịch y tế sẽ được hiển thị tại đây
@@ -239,41 +267,72 @@ const ParentCampaigns = () => {
             </View>
 
             {selectedCampaign && (
-              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={true}>
-                <Text style={styles.modalCampaignTitle}>{selectedCampaign.title}</Text>
+              <ScrollView
+                style={styles.modalBody}
+                showsVerticalScrollIndicator={true}
+              >
+                <Text style={styles.modalCampaignTitle}>
+                  {selectedCampaign.title}
+                </Text>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Mô tả</Text>
                   <Text style={styles.detailValue}>
-                    {selectedCampaign.description || 'Không có mô tả'}
+                    {selectedCampaign.description || "Không có mô tả"}
                   </Text>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Loại chiến dịch</Text>
-                  <View style={[styles.typeBadge, { backgroundColor: getCampaignTypeColor(selectedCampaign.type) }]}>
-                    <Text style={styles.badgeText}>{getCampaignTypeText(selectedCampaign.type)}</Text>
+                  <View
+                    style={[
+                      styles.typeBadge,
+                      {
+                        backgroundColor: getCampaignTypeColor(
+                          selectedCampaign.type
+                        ),
+                      },
+                    ]}
+                  >
+                    <Text style={styles.badgeText}>
+                      {getCampaignTypeText(selectedCampaign.type)}
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Thời gian diễn ra</Text>
                   <Text style={styles.detailValue}>
-                    {formatDate(selectedCampaign.date || selectedCampaign.start_date)} - {formatDate(selectedCampaign.end_date)}
+                    {formatDate(
+                      selectedCampaign.date || selectedCampaign.start_date
+                    )}{" "}
+                    - {formatDate(selectedCampaign.end_date)}
                   </Text>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Trạng thái</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getCampaignStatusColor(selectedCampaign.status) }]}>
-                    <Text style={styles.badgeText}>{getCampaignStatusText(selectedCampaign.status)}</Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor: getCampaignStatusColor(
+                          selectedCampaign.status
+                        ),
+                      },
+                    ]}
+                  >
+                    <Text style={styles.badgeText}>
+                      {getCampaignStatusText(selectedCampaign.status)}
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Lớp tham gia</Text>
                   <Text style={styles.detailValue}>
-                    {selectedCampaign.target_classes?.join(', ') || 'Tất cả các lớp'}
+                    {selectedCampaign.target_classes?.join(", ") ||
+                      "Tất cả các lớp"}
                   </Text>
                 </View>
 
@@ -281,7 +340,8 @@ const ParentCampaigns = () => {
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Yêu cầu xác nhận</Text>
                     <Text style={styles.detailValue}>
-                      Có (Hạn chót: {formatDate(selectedCampaign.consent_deadline)})
+                      Có (Hạn chót:{" "}
+                      {formatDate(selectedCampaign.consent_deadline)})
                     </Text>
                   </View>
                 )}
@@ -296,7 +356,8 @@ const ParentCampaigns = () => {
                       Số lô: {selectedCampaign.vaccineDetails.batchNumber}
                     </Text>
                     <Text style={styles.detailValue}>
-                      Liều lượng: {selectedCampaign.vaccineDetails.dosage}
+                      Liều lượng (1 lần):{" "}
+                      {selectedCampaign.vaccineDetails.dosage}
                     </Text>
                   </View>
                 )}
@@ -304,13 +365,16 @@ const ParentCampaigns = () => {
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Hướng dẫn</Text>
                   <Text style={styles.detailValue}>
-                    {selectedCampaign.instructions || 'Không có hướng dẫn đặc biệt'}
+                    {selectedCampaign.instructions ||
+                      "Không có hướng dẫn đặc biệt"}
                   </Text>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Ngày tạo</Text>
-                  <Text style={styles.detailValue}>{formatDate(selectedCampaign.createdAt)}</Text>
+                  <Text style={styles.detailValue}>
+                    {formatDate(selectedCampaign.createdAt)}
+                  </Text>
                 </View>
               </ScrollView>
             )}
@@ -330,19 +394,19 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   campaignCard: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 15,
     marginBottom: 15,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   campaignHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 15,
   },
   campaignInfo: {
@@ -351,7 +415,7 @@ const styles = StyleSheet.create({
   },
   campaignTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.text,
     marginBottom: 5,
   },
@@ -365,7 +429,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   campaignBadges: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   typeBadge: {
     paddingHorizontal: 10,
@@ -379,9 +443,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   badgeText: {
-    color: 'white',
+    color: "white",
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   consentSection: {
     backgroundColor: colors.lightGray,
@@ -391,14 +455,14 @@ const styles = StyleSheet.create({
   },
   consentTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.text,
     marginBottom: 10,
   },
   studentConsentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 5,
   },
   studentName: {
@@ -407,11 +471,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   consentButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   consentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 15,
@@ -424,38 +488,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error,
   },
   consentButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 3,
   },
   campaignActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
   },
   viewButton: {
     backgroundColor: colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 15,
   },
   viewButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 5,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 50,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.textSecondary,
     marginTop: 15,
     marginBottom: 8,
@@ -463,32 +527,32 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 40,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
-    width: '90%',
-    height: '85%',
+    width: "90%",
+    height: "85%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.text,
   },
   closeButton: {
@@ -499,9 +563,9 @@ const styles = StyleSheet.create({
   },
   modalCampaignTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.text,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
   detailSection: {
@@ -509,7 +573,7 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.textSecondary,
     marginBottom: 5,
   },
