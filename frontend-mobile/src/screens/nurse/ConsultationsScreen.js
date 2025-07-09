@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import nurseAPI from "../../services/nurseApi";
 import colors from "../../styles/colors";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 // Import components
 import ScreenHeader from "./components/ScreenHeader";
@@ -25,7 +26,7 @@ const ConsultationsScreen = ({navigation}) => {
     try {
       setLoading(true);
       const response = await nurseAPI.getConsultations();
-      setConsultations(response);
+      setConsultations(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error("Error loading consultations:", error);
       Alert.alert("Lỗi", "Không thể tải danh sách lịch tư vấn");
@@ -98,7 +99,7 @@ const ConsultationsScreen = ({navigation}) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <ScreenHeader
         title="Tư Vấn Y Tế"
         onBack={() => navigation.goBack()}
@@ -144,11 +145,15 @@ const ConsultationsScreen = ({navigation}) => {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

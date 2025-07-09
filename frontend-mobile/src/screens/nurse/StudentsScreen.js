@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import nurseAPI from "../../services/nurseApi";
 import colors from "../../styles/colors";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 // Import components
 import ScreenHeader from "./components/ScreenHeader";
@@ -26,7 +27,7 @@ const StudentsScreen = ({navigation}) => {
     try {
       setLoading(true);
       const response = await nurseAPI.getStudents();
-      setStudents(response);
+      setStudents(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error("Error loading students:", error);
       Alert.alert("Lỗi", "Không thể tải danh sách học sinh");
@@ -116,7 +117,7 @@ const StudentsScreen = ({navigation}) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <ScreenHeader
         title="Quản Lý Học Sinh"
         onBack={() => navigation.goBack()}
@@ -186,11 +187,15 @@ const StudentsScreen = ({navigation}) => {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

@@ -1,7 +1,7 @@
 import React from "react";
 import {View, Text, StyleSheet} from "react-native";
-import FormPicker from "./FormPicker";
-import FormInput from "./FormInput";
+import FormPicker from "../../../components/common/FormPicker";
+import FormInput from "../../../components/common/FormInput";
 import colors from "../../../styles/colors";
 
 const VaccinationResultForm = ({

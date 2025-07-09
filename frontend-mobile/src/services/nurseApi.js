@@ -5,7 +5,9 @@ export const nurseAPI = {
   // Dashboard
   getDashboard: async () => {
     try {
-      const response = await api.get("/nurse");
+      const response = await api.get("/nurse", {
+        headers: {"Cache-Control": "no-cache"},
+      });
       return response.data;
     } catch (error) {
       console.error("Get dashboard error:", error);
@@ -16,7 +18,9 @@ export const nurseAPI = {
   // Medical Events Management
   getMedicalEvents: async () => {
     try {
-      const response = await api.get("/nurse/medical-events");
+      const response = await api.get("/nurse/medical-events", {
+        headers: {"Cache-Control": "no-cache"},
+      });
       return response.data;
     } catch (error) {
       console.error("Get medical events error:", error);
@@ -36,7 +40,9 @@ export const nurseAPI = {
 
   getMedicalEvent: async (eventId) => {
     try {
-      const response = await api.get(`/nurse/medical-events/${eventId}`);
+      const response = await api.get(`/nurse/medical-events/${eventId}`, {
+        headers: {"Cache-Control": "no-cache"},
+      });
       return response.data;
     } catch (error) {
       console.error("Get medical event error:", error);
@@ -101,7 +107,9 @@ export const nurseAPI = {
   // Medicine Requests - Only GET is implemented in backend
   getMedicineRequests: async () => {
     try {
-      const response = await api.get("/nurse/medicine-requests");
+      const response = await api.get("/nurse/medicine-requests", {
+        headers: {"Cache-Control": "no-cache"},
+      });
       return response.data;
     } catch (error) {
       console.error("Get medicine requests error:", error);
@@ -111,7 +119,9 @@ export const nurseAPI = {
 
   getMedicineInventory: async () => {
     try {
-      const response = await api.get("/nurse/medicine-inventory");
+      const response = await api.get("/nurse/medicine-inventory", {
+        headers: {"Cache-Control": "no-cache"},
+      });
       return response.data;
     } catch (error) {
       console.error("Get medicine inventory error:", error);
@@ -122,7 +132,9 @@ export const nurseAPI = {
   // Vaccination Campaigns
   getVaccinationCampaigns: async () => {
     try {
-      const response = await api.get("/nurse/vaccination-campaigns");
+      const response = await api.get("/nurse/vaccination-campaigns", {
+        headers: {"Cache-Control": "no-cache"},
+      });
       return response.data;
     } catch (error) {
       console.error("Get vaccination campaigns error:", error);
@@ -146,7 +158,8 @@ export const nurseAPI = {
   getVaccinationResults: async (campaignId) => {
     try {
       const response = await api.get(
-        `/nurse/vaccination-campaigns/${campaignId}/results`
+        `/nurse/vaccination-campaigns/${campaignId}/results`,
+        {headers: {"Cache-Control": "no-cache"}}
       );
       return response.data;
     } catch (error) {
@@ -171,7 +184,9 @@ export const nurseAPI = {
   // Health Check Campaigns
   getHealthCheckCampaigns: async () => {
     try {
-      const response = await api.get("/nurse/health-check-campaigns");
+      const response = await api.get("/nurse/health-check-campaigns", {
+        headers: {"Cache-Control": "no-cache"},
+      });
       return response.data;
     } catch (error) {
       console.error("Get health check campaigns error:", error);
@@ -195,7 +210,8 @@ export const nurseAPI = {
   getHealthCheckResults: async (campaignId) => {
     try {
       const response = await api.get(
-        `/nurse/health-check-campaigns/${campaignId}/results`
+        `/nurse/health-check-campaigns/${campaignId}/results`,
+        {headers: {"Cache-Control": "no-cache"}}
       );
       return response.data;
     } catch (error) {
@@ -220,7 +236,9 @@ export const nurseAPI = {
   // Consultations - Only GET is implemented in backend
   getConsultations: async () => {
     try {
-      const response = await api.get("/nurse/consultations");
+      const response = await api.get("/nurse/consultations", {
+        headers: {"Cache-Control": "no-cache"},
+      });
       return response.data;
     } catch (error) {
       console.error("Get consultations error:", error);
@@ -231,7 +249,9 @@ export const nurseAPI = {
   // Students Management
   getStudents: async () => {
     try {
-      const response = await api.get("/nurse/students");
+      const response = await api.get("/nurse/students", {
+        headers: {"Cache-Control": "no-cache"},
+      });
       return response.data;
     } catch (error) {
       console.error("Get students error:", error);
@@ -242,11 +262,24 @@ export const nurseAPI = {
   getStudentHealthProfile: async (studentId) => {
     try {
       const response = await api.get(
-        `/nurse/students/${studentId}/health-profile`
+        `/nurse/students/${studentId}/health-profile`,
+        {headers: {"Cache-Control": "no-cache"}}
       );
       return response.data;
     } catch (error) {
       console.error("Get student health profile error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+  getCurrentUser: async () => {
+    try {
+      const response = await api.get("/auth/me", {
+        headers: {"Cache-Control": "no-cache"},
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Get current user error:", error);
       throw error.response?.data || {message: "Network error"};
     }
   },
@@ -267,11 +300,34 @@ export const nurseAPI = {
   getStudentMedicalHistory: async (studentId) => {
     try {
       const response = await api.get(
-        `/nurse/students/${studentId}/medical-history`
+        `/nurse/students/${studentId}/medical-history`,
+        {headers: {"Cache-Control": "no-cache"}}
       );
       return response.data;
     } catch (error) {
       console.error("Get student medical history error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+  // Update nurse profile
+  updateProfile: async (profileData) => {
+    try {
+      const response = await api.put("/auth/profile", profileData);
+      return response.data;
+    } catch (error) {
+      console.error("Update profile error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+  // Change nurse password
+  changePassword: async (passwordData) => {
+    try {
+      const response = await api.post("/auth/change-password", passwordData);
+      return response.data;
+    } catch (error) {
+      console.error("Change password error:", error);
       throw error.response?.data || {message: "Network error"};
     }
   },

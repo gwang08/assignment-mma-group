@@ -6,9 +6,11 @@ import {
   ScrollView,
   Alert,
   RefreshControl,
+  TouchableOpacity,
 } from "react-native";
 import nurseAPI from "../../services/nurseApi";
 import colors from "../../styles/colors";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 // Import components
 import ScreenHeader from "./components/ScreenHeader";
@@ -131,11 +133,10 @@ const MedicineRequestsScreen = ({navigation}) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <ScreenHeader
         title="Quản Lý Yêu Cầu Thuốc"
         onBack={() => navigation.goBack()}
-        onAdd={handleCreateRequest}
         backgroundColor="#4ECDC4"
       />
 
@@ -195,11 +196,22 @@ const MedicineRequestsScreen = ({navigation}) => {
           students={students}
         />
       </ModalForm>
-    </View>
+      {/* FAB Create Button */}
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={handleCreateRequest}
+      >
+        <Text style={styles.createButtonText}>+</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -241,6 +253,30 @@ const styles = StyleSheet.create({
   requestsContainer: {
     padding: 20,
     gap: 15,
+  },
+  createButton: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: colors.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  createButtonText: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
   },
 });
 

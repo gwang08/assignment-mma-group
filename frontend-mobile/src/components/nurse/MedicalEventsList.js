@@ -30,7 +30,7 @@ const MedicalEventsList = ({events}) => {
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Sự Kiện Y Tế Gần Đây</Text>
       <View style={styles.eventsContainer}>
-        {events.map((event, index) => (
+        {events.slice(0, 4).map((event, index) => (
           <View key={event._id || index} style={styles.eventItem}>
             <View style={styles.eventHeader}>
               <Text style={styles.eventType}>{event.event_type}</Text>
