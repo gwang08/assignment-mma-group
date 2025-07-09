@@ -23,14 +23,13 @@ import MedicationModalForm from "./components/MedicationModalForm";
 import SearchAndFilterBar from "./components/SearchAndFilterBar";
 import NotifyParentModal from "./components/NotifyParentModal";
 // Enums cho loại sự kiện và trạng thái
-const EVENT_TYPE = [
-  {label: "Tai nạn", value: "Accident"},
-  {label: "Sốt", value: "Fever"},
-  {label: "Chấn thương", value: "Injury"},
-  {label: "Dịch bệnh", value: "Epidemic"},
-  {label: "Khác", value: "Other"},
-];
 
+const EVENT_STATUS = [
+  {label: "Mở", value: "Open"},
+  {label: "Đang xử lý", value: "In Progress"},
+  {label: "Đã xử lý", value: "Resolved"},
+  {label: "Chuyển viện", value: "Referred to Hospital"},
+];
 const MedicalEventsScreen = ({navigation}) => {
   const [events, setEvents] = useState([]);
   const [students, setStudents] = useState([]);
@@ -258,7 +257,7 @@ const MedicalEventsScreen = ({navigation}) => {
       !searchValue ||
       event.description?.toLowerCase().includes(searchValue.toLowerCase()) ||
       event.event_type?.toLowerCase().includes(searchValue.toLowerCase());
-    const matchesFilter = !filterValue || event.event_type === filterValue;
+    const matchesFilter = !filterValue || event.status === filterValue;
     return matchesSearch && matchesFilter;
   });
 
@@ -287,8 +286,8 @@ const MedicalEventsScreen = ({navigation}) => {
             onSearchChange={setSearchValue}
             filterValue={filterValue}
             onFilterChange={setFilterValue}
-            filterOptions={[{label: "Tất cả", value: ""}, ...EVENT_TYPE]}
-            filterLabel="Loại sự kiện"
+            filterOptions={[{label: "Tất cả", value: ""}, ...EVENT_STATUS]}
+            filterLabel="Trạng thái"
             searchLabel="Tìm theo loại sự kiện:"
           />
           <MedicalEventList
