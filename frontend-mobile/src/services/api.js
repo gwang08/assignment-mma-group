@@ -126,6 +126,23 @@ export const authAPI = {
       console.error("Error during logout:", error);
     }
   },
+
+  // Cập nhật thông tin profile
+  updateProfile: async (profileData) => {
+    try {
+      console.log("Attempting profile update with:", profileData);
+      const response = await api.put("/auth/profile", profileData);
+      console.log("Profile update successful:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Profile update error details:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error.response?.data || { message: "Network error" };
+    }
+  },
 };
 
 // Storage helpers

@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { adminAPI } from '../../services/adminApi';
@@ -23,9 +24,16 @@ const NurseCreationForm = ({ visible, onClose, onSuccess, editingNurse, isEditin
     email: '',
     phone_number: '',
     gender: '',
-    staff_role: 'Nurse'
+    staff_role: 'Nurse',
+    dateOfBirth: ''
   });
   const [showGenderPicker, setShowGenderPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState({
+    day: '',
+    month: '',
+    year: ''
+  });
   const [submitting, setSubmitting] = useState(false);
 
   // Load editing data when modal opens
@@ -39,8 +47,17 @@ const NurseCreationForm = ({ visible, onClose, onSuccess, editingNurse, isEditin
         email: editingNurse.email || '',
         phone_number: editingNurse.phone_number || '',
         gender: editingNurse.gender || '',
-        staff_role: editingNurse.staff_role || 'Nurse'
+        staff_role: editingNurse.staff_role || 'Nurse',
+        dateOfBirth: editingNurse.dateOfBirth || ''
       });
+      
+      // Set the temp date for date picker
+      if (editingNurse.dateOfBirth) {
+        const [year, month, day] = editingNurse.dateOfBirth.split('-');
+        if (year && month && day) {
+          setTempDate({ day, month, year });
+        }
+      }
     } else if (visible && !isEditing) {
       resetForm();
     }
@@ -55,9 +72,12 @@ const NurseCreationForm = ({ visible, onClose, onSuccess, editingNurse, isEditin
       email: '',
       phone_number: '',
       gender: '',
-      staff_role: 'Nurse'
+      staff_role: 'Nurse',
+      dateOfBirth: ''
     });
     setShowGenderPicker(false);
+    setShowDatePicker(false);
+    setTempDate({ day: '', month: '', year: '' });
   };
 
   const handleInputChange = (field, value) => {
@@ -67,8 +87,88 @@ const NurseCreationForm = ({ visible, onClose, onSuccess, editingNurse, isEditin
     }));
   };
 
+  const handleDateChange = (field, value) => {
+    // Only allow numbers and limit length
+    const numericValue = value.replace(/[^0-9]/g, '');
+    let maxLength = 4;
+    
+    if (field === 'day' || field === 'month') {
+      maxLength = 2;
+    }
+    
+    if (numericValue.length <= maxLength) {
+      setTempDate(prev => ({
+        ...prev,
+        [field]: numericValue
+      }));
+    }
+  };
+
+  const showDatePickerHandler = () => {
+    console.log('Showing date picker');
+    // Initialize temp date with current value if exists
+    if (formData.dateOfBirth) {
+      const [year, month, day] = formData.dateOfBirth.split('-');
+      setTempDate({
+        day: day || '',
+        month: month || '',
+        year: year || ''
+      });
+    } else {
+      setTempDate({ day: '', month: '', year: '' });
+    }
+    setShowDatePicker(true);
+  };
+
+  const hideDatePicker = () => {
+    setShowDatePicker(false);
+  };
+
+  const confirmDateSelection = () => {
+    const { day, month, year } = tempDate;
+    
+    // Validate the date
+    if (!day || !month || !year) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ ngày, tháng, năm');
+      return;
+    }
+    
+    const dayNum = parseInt(day);
+    const monthNum = parseInt(month);
+    const yearNum = parseInt(year);
+    
+    if (dayNum < 1 || dayNum > 31) {
+      Alert.alert('Lỗi', 'Ngày phải từ 1 đến 31');
+      return;
+    }
+    
+    if (monthNum < 1 || monthNum > 12) {
+      Alert.alert('Lỗi', 'Tháng phải từ 1 đến 12');
+      return;
+    }
+    
+    if (yearNum < 1900 || yearNum > new Date().getFullYear()) {
+      Alert.alert('Lỗi', 'Năm không hợp lệ');
+      return;
+    }
+    
+    // Format as YYYY-MM-DD
+    const formattedDate = `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    
+    // Validate the actual date
+    const testDate = new Date(formattedDate);
+    if (testDate.getFullYear() != yearNum || testDate.getMonth() + 1 != monthNum || testDate.getDate() != dayNum) {
+      Alert.alert('Lỗi', 'Ngày không hợp lệ');
+      return;
+    }
+    
+    console.log('Formatted date:', formattedDate);
+    handleInputChange('dateOfBirth', formattedDate);
+    setShowDatePicker(false);
+  };
+
   const validateForm = () => {
-    const requiredFields = ['first_name', 'last_name', 'email', 'phone_number', 'gender'];
+    const requiredFields = ['first_name', 'last_name', 'email', 'phone_number', 'gender', 'dateOfBirth'];
     if (!isEditing) {
       requiredFields.push('username', 'password');
     }
@@ -98,7 +198,8 @@ const NurseCreationForm = ({ visible, onClose, onSuccess, editingNurse, isEditin
       password: 'Mật khẩu',
       email: 'Email',
       phone_number: 'Số điện thoại',
-      gender: 'Giới tính'
+      gender: 'Giới tính',
+      dateOfBirth: 'Ngày sinh'
     };
     return fieldNames[field] || field;
   };
@@ -111,26 +212,26 @@ const NurseCreationForm = ({ visible, onClose, onSuccess, editingNurse, isEditin
       
       // Prepare data for API
       const nurseData = {
-        staffData: {
-          first_name: formData.first_name.trim(),
-          last_name: formData.last_name.trim(),
-          email: formData.email.trim(),
-          phone_number: formData.phone_number.trim(),
-          gender: formData.gender,
-          staff_role: formData.staff_role,
-          role: 'medicalStaff'
-        }
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        email: formData.email.trim(),
+        phone_number: formData.phone_number.trim(),
+        gender: formData.gender,
+        staff_role: formData.staff_role,
+        role: 'medicalStaff',
+        dateOfBirth: formData.dateOfBirth,
+        is_active: true
       };
 
       // Add username and password only for creation
       if (!isEditing) {
-        nurseData.staffData.username = formData.username.trim();
-        nurseData.staffData.password = formData.password.trim();
+        nurseData.username = formData.username.trim();
+        nurseData.password = formData.password.trim();
       }
 
       let response;
       if (isEditing && editingNurse) {
-        response = await adminAPI.updateMedicalStaff(editingNurse._id, nurseData.staffData);
+        response = await adminAPI.updateMedicalStaff(editingNurse._id, nurseData);
       } else {
         response = await adminAPI.createMedicalStaff(nurseData);
       }
@@ -249,6 +350,19 @@ const NurseCreationForm = ({ visible, onClose, onSuccess, editingNurse, isEditin
                 />
               </View>
 
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Ngày sinh *</Text>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={showDatePickerHandler}
+                >
+                  <Text style={[styles.pickerText, !formData.dateOfBirth && styles.placeholderText]}>
+                    {formData.dateOfBirth || 'Chọn ngày sinh'}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={20} color="#666" />
+                </TouchableOpacity>
+              </View>
+
               {/* Gender Selection */}
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Giới tính *</Text>
@@ -283,6 +397,74 @@ const NurseCreationForm = ({ visible, onClose, onSuccess, editingNurse, isEditin
               </View>
             </View>
           </ScrollView>
+
+          {/* Custom Date Picker Modal */}
+          <Modal
+            visible={showDatePicker}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={hideDatePicker}
+          >
+            <View style={styles.datePickerOverlay}>
+              <View style={styles.datePickerModal}>
+                <View style={styles.datePickerHeader}>
+                  <TouchableOpacity onPress={hideDatePicker}>
+                    <Text style={styles.datePickerButton}>Hủy</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.datePickerTitle}>Chọn ngày sinh</Text>
+                  <TouchableOpacity onPress={confirmDateSelection}>
+                    <Text style={styles.datePickerButton}>Xong</Text>
+                  </TouchableOpacity>
+                </View>
+                
+                <View style={styles.dateInputContainer}>
+                  <View style={styles.dateFieldContainer}>
+                    <Text style={styles.dateFieldLabel}>Ngày</Text>
+                    <TextInput
+                      style={styles.dateInput}
+                      value={tempDate.day}
+                      onChangeText={(value) => handleDateChange('day', value)}
+                      placeholder="DD"
+                      keyboardType="numeric"
+                      maxLength={2}
+                    />
+                  </View>
+                  
+                  <Text style={styles.dateSeparator}>/</Text>
+                  
+                  <View style={styles.dateFieldContainer}>
+                    <Text style={styles.dateFieldLabel}>Tháng</Text>
+                    <TextInput
+                      style={styles.dateInput}
+                      value={tempDate.month}
+                      onChangeText={(value) => handleDateChange('month', value)}
+                      placeholder="MM"
+                      keyboardType="numeric"
+                      maxLength={2}
+                    />
+                  </View>
+                  
+                  <Text style={styles.dateSeparator}>/</Text>
+                  
+                  <View style={styles.dateFieldContainer}>
+                    <Text style={styles.dateFieldLabel}>Năm</Text>
+                    <TextInput
+                      style={styles.dateInput}
+                      value={tempDate.year}
+                      onChangeText={(value) => handleDateChange('year', value)}
+                      placeholder="YYYY"
+                      keyboardType="numeric"
+                      maxLength={4}
+                    />
+                  </View>
+                </View>
+                
+                <Text style={styles.datePickerHint}>
+                  Nhập ngày sinh theo định dạng DD/MM/YYYY
+                </Text>
+              </View>
+            </View>
+          </Modal>
 
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
@@ -446,6 +628,74 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  datePickerModal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 20,
+    width: '85%',
+    maxWidth: 350,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
+    marginBottom: 20,
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  datePickerButton: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  dateInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginBottom: 20,
+  },
+  dateFieldContainer: {
+    alignItems: 'center',
+  },
+  dateFieldLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
+  },
+  dateInput: {
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 18,
+    textAlign: 'center',
+    width: 60,
+    backgroundColor: '#FAFAFA',
+  },
+  dateSeparator: {
+    fontSize: 20,
+    color: '#666',
+    marginHorizontal: 10,
+    marginBottom: 12,
+  },
+  datePickerHint: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 
