@@ -375,9 +375,9 @@ exports.getCampaigns = async (req, res) => {
     });
     const classNames = activeStudents.map((s) => s.class_name);
 
-    console.log('Parent campaigns debug:');
-    console.log('Student IDs:', studentIds);
-    console.log('Class Names:', classNames);
+    console.log("Parent campaigns debug:");
+    console.log("Student IDs:", studentIds);
+    console.log("Class Names:", classNames);
 
     // Find campaigns that target these classes or students specifically
     // Show campaigns that either:
@@ -396,15 +396,19 @@ exports.getCampaigns = async (req, res) => {
             { target_classes: { $exists: false } }, // Handle case where target_classes doesn't exist
             { target_classes: null }, // Handle case where target_classes is null
             // If target_classes contains "all_grades" or similar
-            { target_classes: { $regex: /^(all|grade_)/i } }
-          ]
-        }
-      ]
+            { target_classes: { $regex: /^(all|grade_)/i } },
+          ],
+        },
+      ],
     }).sort({ date: 1 });
 
-    console.log('Found campaigns count:', campaigns.length);
-    campaigns.forEach(c => {
-      console.log(`Campaign: ${c.title}, Status: ${c.status}, Target Classes: ${JSON.stringify(c.target_classes)}`);
+    console.log("Found campaigns count:", campaigns.length);
+    campaigns.forEach((c) => {
+      console.log(
+        `Campaign: ${c.title}, Status: ${
+          c.status
+        }, Target Classes: ${JSON.stringify(c.target_classes)}`
+      );
     });
 
     // Get consent status for each campaign
@@ -713,13 +717,20 @@ exports.updateMedicineRequest = async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to start of day for comparison
 
-    const requestStartDate = new Date(request.startDate || request.start_date);
+    const requestStartDate = new Date(request.startDate);
     requestStartDate.setHours(0, 0, 0, 0);
 
     if (requestStartDate < today) {
       return res.status(400).json({
         success: false,
         message: "Cannot update requests that have already started",
+      });
+    }
+
+    if (request.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending requests can be updated",
       });
     }
 

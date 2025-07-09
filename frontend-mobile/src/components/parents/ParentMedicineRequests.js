@@ -238,6 +238,9 @@ const ParentMedicineRequests = () => {
   const canEditRequest = (request) => {
     if (!request) return false;
 
+    // Only pending requests can be edited
+    if (request.status !== "pending") return false;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Start of today
 
@@ -248,11 +251,29 @@ const ParentMedicineRequests = () => {
     startDate.setHours(0, 0, 0, 0); // Start of the start date
 
     // Can edit if start date is today or in the future
-    return startDate > today;
+    return startDate >= today;
   };
 
-  // Helper function to get medicine request status based on dates
+  // Helper function to get medicine request status based on dates and status
   const getMedicineRequestStatus = (request) => {
+    // First check the request status (from backend)
+    if (request.status) {
+      switch (request.status) {
+        case "pending":
+          return { text: "Chờ duyệt", color: colors.warning };
+        case "approved":
+          // For approved requests, check dates to see if active/completed
+          break; // Continue to date-based logic below
+        case "rejected":
+          return { text: "Đã từ chối", color: colors.error };
+        case "completed":
+          return { text: "Đã hoàn thành", color: colors.success };
+        default:
+          break;
+      }
+    }
+
+    // For approved requests or legacy requests without status, check dates
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Start of today
 
@@ -268,15 +289,20 @@ const ParentMedicineRequests = () => {
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(0, 0, 0, 0);
 
-    if (today < startDate) {
-      // Not started yet
-      return { text: "Chưa tới ngày", color: colors.warning };
-    } else if (today >= startDate && today <= endDate) {
-      // In progress
-      return { text: "Đang thực hiện", color: colors.primary };
-    } else {
-      // Completed
-      return { text: "Đã hoàn thành", color: colors.success };
+    if (request.status === "approved") {
+      if (today < startDate) {
+        // Approved but not started yet
+        return {
+          text: "Đã duyệt - Chưa tới ngày",
+          color: colors.info || colors.primary,
+        };
+      } else if (today >= startDate && today <= endDate) {
+        // Currently active
+        return { text: "Đang thực hiện", color: colors.primary };
+      } else {
+        // Ended
+        return { text: "Đã kết thúc", color: colors.success };
+      }
     }
   };
 
@@ -539,6 +565,16 @@ const ParentMedicineRequests = () => {
           <Text style={styles.detailText}>
             Kết thúc: {formatDate(item.endDate || item.end_date)}
           </Text>
+          {item.approved_by && item.approved_at && (
+            <Text style={styles.detailText}>
+              Duyệt bởi: {item.approved_by} - {formatDate(item.approved_at)}
+            </Text>
+          )}
+          {item.status === "rejected" && (
+            <Text style={[styles.detailText, { color: colors.error }]}>
+              Lý do từ chối: {item.notes || "Không có ghi chú"}
+            </Text>
+          )}
         </View>
       </TouchableOpacity>
     );
