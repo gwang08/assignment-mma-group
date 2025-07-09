@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Base URL cho backend
 // Dùng IP của máy thay vì localhost cho mobile
-const BASE_URL = "http://192.168.1.204:3000"; // Thay IP này bằng IP thực của máy bạn
+const BASE_URL = "http://192.168.1.243:3000"; // Thay IP này bằng IP thực của máy bạn
 
 // Tạo instance của axios
 const api = axios.create({
@@ -124,6 +124,23 @@ export const authAPI = {
       await AsyncStorage.removeItem("userType");
     } catch (error) {
       console.error("Error during logout:", error);
+    }
+  },
+
+  // Cập nhật thông tin profile
+  updateProfile: async (profileData) => {
+    try {
+      console.log("Attempting profile update with:", profileData);
+      const response = await api.put("/auth/profile", profileData);
+      console.log("Profile update successful:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Profile update error details:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error.response?.data || { message: "Network error" };
     }
   },
 };
