@@ -64,7 +64,7 @@ export const adminAPI = {
 
   createMedicalStaff: async (staffData) => {
     try {
-      const response = await api.post('/admin/medical-staff', { staffData });
+      const response = await api.post('/admin/medical-staff', staffData);
       return response.data;
     } catch (error) {
       console.error('Create medical staff error:', error);
