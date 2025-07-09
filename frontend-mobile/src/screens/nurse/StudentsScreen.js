@@ -1,14 +1,5 @@
 import React, {useState, useEffect} from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
+import {StyleSheet, ScrollView, Alert, RefreshControl} from "react-native";
 import nurseAPI from "../../services/nurseApi";
 import colors from "../../styles/colors";
 import {SafeAreaView} from "react-native-safe-area-context";
@@ -16,20 +7,41 @@ import {SafeAreaView} from "react-native-safe-area-context";
 // Import components
 import ScreenHeader from "./components/ScreenHeader";
 import LoadingScreen from "./components/LoadingScreen";
-import EmptyState from "./components/EmptyState";
+import StudentStats from "./components/StudentStats";
+import StudentList from "./components/StudentList";
+import StudentDetailModal from "./components/StudentDetailModal";
+import SearchAndFilterBar from "./components/SearchAndFilterBar";
 
 const StudentsScreen = ({navigation}) => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [healthProfile, setHealthProfile] = useState(null);
+  const [medicalHistory, setMedicalHistory] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [filterValue, setFilterValue] = useState("");
+  const [detailTab, setDetailTab] = useState("info");
 
   const loadStudents = async () => {
     try {
       setLoading(true);
       const response = await nurseAPI.getStudents();
-      setStudents(Array.isArray(response) ? response : []);
+      console.log(response.data);
+      let studentsArr = [];
+      if (Array.isArray(response)) {
+        studentsArr = response;
+      } else if (Array.isArray(response.data)) {
+        studentsArr = response.data;
+      } else if (response && Array.isArray(response.students)) {
+        studentsArr = response.students;
+      }
+      setStudents(studentsArr);
     } catch (error) {
       console.error("Error loading students:", error);
+      setStudents([]);
       Alert.alert("Lỗi", "Không thể tải danh sách học sinh");
     } finally {
       setLoading(false);
@@ -47,69 +59,80 @@ const StudentsScreen = ({navigation}) => {
   }, []);
 
   const handleViewStudent = async (student) => {
+    setSelectedStudent(student);
+    setDetailModalVisible(true);
+    setDetailTab("info");
+    setDetailLoading(true);
+    let healthProfileData = null;
+    let medicalHistoryData = null;
     try {
-      let healthProfile = null;
-      let medicalHistory = null;
-
       try {
-        healthProfile = await nurseAPI.getStudentHealthProfile(student._id);
+        healthProfileData = await nurseAPI.getStudentHealthProfile(student._id);
       } catch (error) {
         if (error.status === 404) {
-          // Student doesn't have a health profile yet
-          healthProfile = null;
+          healthProfileData = null;
         } else {
           throw error;
         }
       }
-
       try {
-        medicalHistory = await nurseAPI.getStudentMedicalHistory(student._id);
+        medicalHistoryData = await nurseAPI.getStudentMedicalHistory(
+          student._id
+        );
       } catch (error) {
-        console.error("Error loading medical history:", error);
-        medicalHistory = {
+        medicalHistoryData = {
           medicalEvents: [],
           medicineRequests: [],
           campaignResults: [],
         };
       }
-
-      Alert.alert(
-        "Thông Tin Học Sinh",
-        `Tên: ${student.first_name} ${student.last_name}\nLớp: ${
-          student.class_name
-        }\nSức khỏe: ${
-          healthProfile ? "Có hồ sơ" : "Chưa có hồ sơ"
-        }\nLịch sử y tế: ${medicalHistory?.medicalEvents?.length || 0} sự kiện`,
-        [
-          {
-            text: "Xem Hồ Sơ Sức Khỏe",
-            onPress: () => handleViewHealthProfile(student),
-          },
-          {
-            text: "Xem Lịch Sử Y Tế",
-            onPress: () => handleViewMedicalHistory(student),
-          },
-          {text: "Đóng"},
-        ]
-      );
     } catch (error) {
       console.error("Error loading student details:", error);
       Alert.alert("Lỗi", "Không thể tải thông tin chi tiết học sinh");
     }
+    setHealthProfile(healthProfileData);
+    setMedicalHistory(medicalHistoryData);
+    setDetailLoading(false);
   };
 
-  const handleViewHealthProfile = (student) => {
-    Alert.alert(
-      "Hồ Sơ Sức Khỏe",
-      `Chức năng xem hồ sơ sức khỏe của ${student.first_name} sẽ được phát triển sau.`
-    );
+  // Lọc students theo search/filter
+  const filteredStudents = students.filter((student) => {
+    const matchesSearch =
+      !searchValue ||
+      student.first_name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+      student.last_name?.toLowerCase().includes(searchValue.toLowerCase()) ||
+      student.class_name?.toLowerCase().includes(searchValue.toLowerCase());
+    return matchesSearch;
+  });
+
+  const handleViewHealthProfile = async (student) => {
+    setDetailTab("profile");
+    setDetailLoading(true);
+    try {
+      const profile = await nurseAPI.getStudentHealthProfile(student._id);
+      setHealthProfile(profile.data);
+    } catch (error) {
+      setHealthProfile(null);
+      Alert.alert("Lỗi", "Không thể tải hồ sơ sức khỏe");
+    }
+    setDetailLoading(false);
   };
 
-  const handleViewMedicalHistory = (student) => {
-    Alert.alert(
-      "Lịch Sử Y Tế",
-      `Chức năng xem lịch sử y tế của ${student.first_name} sẽ được phát triển sau.`
-    );
+  const handleViewMedicalHistory = async (student) => {
+    setDetailTab("history");
+    setDetailLoading(true);
+    try {
+      const history = await nurseAPI.getStudentMedicalHistory(student._id);
+      setMedicalHistory(history);
+    } catch (error) {
+      setMedicalHistory({
+        medicalEvents: [],
+        medicineRequests: [],
+        campaignResults: [],
+      });
+      Alert.alert("Lỗi", "Không thể tải lịch sử y tế");
+    }
+    setDetailLoading(false);
   };
 
   if (loading) {
@@ -123,70 +146,38 @@ const StudentsScreen = ({navigation}) => {
         onBack={() => navigation.goBack()}
         backgroundColor="#45B7D1"
       />
-
       <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{students.length}</Text>
-            <Text style={styles.statLabel}>Tổng Học Sinh</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {students.filter((s) => s.is_active).length}
-            </Text>
-            <Text style={styles.statLabel}>Đang Học</Text>
-          </View>
-        </View>
-
-        <View style={styles.studentsContainer}>
-          {students.length === 0 ? (
-            <EmptyState message="Không có học sinh nào" />
-          ) : (
-            students.map((student, index) => (
-              <TouchableOpacity
-                key={student._id || index}
-                style={styles.studentCard}
-                onPress={() => handleViewStudent(student)}
-              >
-                <View style={styles.studentHeader}>
-                  <Text style={styles.studentName}>
-                    {student.first_name} {student.last_name}
-                  </Text>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      {
-                        backgroundColor: student.is_active
-                          ? "#2ED573"
-                          : "#FF4757",
-                      },
-                    ]}
-                  >
-                    <Text style={styles.badgeText}>
-                      {student.is_active ? "Đang học" : "Nghỉ học"}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.studentClass}>
-                  Lớp: {student.class_name}
-                </Text>
-                <Text style={styles.studentGender}>
-                  Giới tính: {student.gender}
-                </Text>
-                <Text style={styles.studentDate}>
-                  Ngày sinh:{" "}
-                  {new Date(student.dateOfBirth).toLocaleDateString("vi-VN")}
-                </Text>
-              </TouchableOpacity>
-            ))
-          )}
-        </View>
+        <StudentStats students={students} />
+        <SearchAndFilterBar
+          searchValue={searchValue}
+          onSearchChange={setSearchValue}
+          filterValue={filterValue}
+          onFilterChange={setFilterValue}
+          filterOptions={[{label: "Tất cả", value: ""}]}
+          searchLabel="Tìm theo tên, lớp:"
+        />
+        <StudentList
+          students={filteredStudents}
+          onViewStudent={handleViewStudent}
+        />
       </ScrollView>
+      <StudentDetailModal
+        visible={detailModalVisible}
+        student={selectedStudent}
+        healthProfile={healthProfile}
+        medicalHistory={medicalHistory}
+        loading={detailLoading}
+        onClose={() => setDetailModalVisible(false)}
+        onViewHealthProfile={() => handleViewHealthProfile(selectedStudent)}
+        onViewMedicalHistory={() => handleViewMedicalHistory(selectedStudent)}
+        initialTab={detailTab}
+        onTabChange={setDetailTab}
+      />
     </SafeAreaView>
   );
 };
