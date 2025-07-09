@@ -117,6 +117,19 @@ export const nurseAPI = {
     }
   },
 
+  updateMedicineRequestStatus: async (requestId, status, notes) => {
+    try {
+      const response = await api.put(
+        `/nurse/medicine-requests/${requestId}/status`,
+        {status, notes}
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Update medicine request status error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
   getMedicineInventory: async () => {
     try {
       const response = await api.get("/nurse/medicine-inventory", {

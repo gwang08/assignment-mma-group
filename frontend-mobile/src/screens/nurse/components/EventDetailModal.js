@@ -248,9 +248,9 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     marginTop: 18,
-    flexWrap: "wrap",
+    flexWrap: "no-wrap",
     gap: 8,
   },
   actionBtn: {

@@ -7,8 +7,6 @@ import {
   Alert,
   RefreshControl,
   TouchableOpacity,
-  TextInput,
-  Switch,
 } from "react-native";
 import nurseAPI from "../../services/nurseApi";
 import colors from "../../styles/colors";
@@ -17,38 +15,21 @@ import {SafeAreaView} from "react-native-safe-area-context";
 // Import components
 import ScreenHeader from "./components/ScreenHeader";
 import LoadingScreen from "./components/LoadingScreen";
-// import EmptyState from "./components/EmptyState";
-// import ModalForm from "./components/ModalForm";
-// import MedicalEventCard from "./components/MedicalEventCard";
-// import FormPicker from "../../components/common/FormPicker";
-// import FormInput from "../../components/common/FormInput";
 import EventDetailModal from "./components/EventDetailModal";
 import MedicalEventStats from "./components/MedicalEventStats";
 import MedicalEventList from "./components/MedicalEventList";
 import MedicalEventForm from "./components/MedicalEventForm";
 import MedicationModalForm from "./components/MedicationModalForm";
 import SearchAndFilterBar from "./components/SearchAndFilterBar";
+import NotifyParentModal from "./components/NotifyParentModal";
 // Enums cho loại sự kiện và trạng thái
-const EVENT_TYPE = [
-  {label: "Tai nạn", value: "Accident"},
-  {label: "Sốt", value: "Fever"},
-  {label: "Chấn thương", value: "Injury"},
-  {label: "Dịch bệnh", value: "Epidemic"},
-  {label: "Khác", value: "Other"},
-];
+
 const EVENT_STATUS = [
   {label: "Mở", value: "Open"},
   {label: "Đang xử lý", value: "In Progress"},
-  {label: "Đã giải quyết", value: "Resolved"},
+  {label: "Đã xử lý", value: "Resolved"},
   {label: "Chuyển viện", value: "Referred to Hospital"},
 ];
-const EVENT_SEVERITY = [
-  {label: "Thấp", value: "Low"},
-  {label: "Trung bình", value: "Medium"},
-  {label: "Cao", value: "High"},
-  {label: "Khẩn cấp", value: "Emergency"},
-];
-
 const MedicalEventsScreen = ({navigation}) => {
   const [events, setEvents] = useState([]);
   const [students, setStudents] = useState([]);
@@ -79,6 +60,9 @@ const MedicalEventsScreen = ({navigation}) => {
   const [editFormData, setEditFormData] = useState(null);
   const [searchValue, setSearchValue] = useState("");
   const [filterValue, setFilterValue] = useState("");
+  const [notifyModalVisible, setNotifyModalVisible] = useState(false);
+  const [notifyMethod, setNotifyMethod] = useState("");
+  const [notifying, setNotifying] = useState(false);
   const loadEvents = async () => {
     try {
       setLoading(true);
@@ -153,7 +137,7 @@ const MedicalEventsScreen = ({navigation}) => {
       symptoms: "",
       treatment_notes: "",
       follow_up_required: false,
-      severity: "", // Thêm trường severity
+      severity: "",
     });
     setModalVisible(true);
   };
@@ -250,13 +234,30 @@ const MedicalEventsScreen = ({navigation}) => {
     }
   };
 
+  const handleNotifyParent = async () => {
+    if (!selectedEvent || !notifyMethod) return;
+    setNotifying(true);
+    try {
+      await nurseAPI.updateParentNotification(selectedEvent._id, {
+        method: notifyMethod,
+      });
+      Alert.alert("Thành công", "Đã gửi thông báo cho phụ huynh");
+      setNotifyModalVisible(false);
+      setNotifyMethod("");
+    } catch (e) {
+      Alert.alert("Lỗi", "Không thể gửi thông báo");
+    } finally {
+      setNotifying(false);
+    }
+  };
+
   // Lọc events theo search/filter
   const filteredEvents = events.filter((event) => {
     const matchesSearch =
       !searchValue ||
       event.description?.toLowerCase().includes(searchValue.toLowerCase()) ||
       event.event_type?.toLowerCase().includes(searchValue.toLowerCase());
-    const matchesFilter = !filterValue || event.event_type === filterValue;
+    const matchesFilter = !filterValue || event.status === filterValue;
     return matchesSearch && matchesFilter;
   });
 
@@ -285,8 +286,8 @@ const MedicalEventsScreen = ({navigation}) => {
             onSearchChange={setSearchValue}
             filterValue={filterValue}
             onFilterChange={setFilterValue}
-            filterOptions={[{label: "Tất cả", value: ""}, ...EVENT_TYPE]}
-            filterLabel="Loại sự kiện"
+            filterOptions={[{label: "Tất cả", value: ""}, ...EVENT_STATUS]}
+            filterLabel="Trạng thái"
             searchLabel="Tìm theo loại sự kiện:"
           />
           <MedicalEventList
@@ -346,7 +347,20 @@ const MedicalEventsScreen = ({navigation}) => {
               onPress: () => handleEditEvent(selectedEvent),
               style: "default",
             },
+            {
+              text: "SMS - PH",
+              onPress: () => setNotifyModalVisible(true),
+              style: "default",
+            },
           ]}
+        />
+        <NotifyParentModal
+          visible={notifyModalVisible}
+          method={notifyMethod}
+          setMethod={setNotifyMethod}
+          loading={notifying}
+          onSend={handleNotifyParent}
+          onClose={() => setNotifyModalVisible(false)}
         />
 
         {/* FAB Create Button */}
