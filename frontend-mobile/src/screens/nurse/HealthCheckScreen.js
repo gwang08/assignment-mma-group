@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import nurseAPI from "../../services/nurseApi";
 import colors from "../../styles/colors";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 // Import components
 import ScreenHeader from "./components/ScreenHeader";
@@ -141,14 +142,12 @@ const HealthCheckScreen = ({navigation}) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <ScreenHeader
         title="Kiểm Tra Sức Khỏe"
         onBack={() => navigation.goBack()}
-        onAdd={handleCreateCampaign}
         backgroundColor="#F39C12"
       />
-
       <ScrollView
         style={styles.content}
         refreshControl={
@@ -161,7 +160,6 @@ const HealthCheckScreen = ({navigation}) => {
             <Text style={styles.statLabel}>Tổng Chiến Dịch</Text>
           </View>
         </View>
-
         <View style={styles.campaignsContainer}>
           {campaigns.length === 0 ? (
             <EmptyState message="Không có chiến dịch kiểm tra sức khỏe nào" />
@@ -176,11 +174,22 @@ const HealthCheckScreen = ({navigation}) => {
           )}
         </View>
       </ScrollView>
-    </View>
+      {/* FAB Create Button */}
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={handleCreateCampaign}
+      >
+        <Text style={styles.createButtonText}>+</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -222,6 +231,30 @@ const styles = StyleSheet.create({
   campaignsContainer: {
     padding: 20,
     gap: 15,
+  },
+  createButton: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: colors.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  createButtonText: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
   },
 });
 

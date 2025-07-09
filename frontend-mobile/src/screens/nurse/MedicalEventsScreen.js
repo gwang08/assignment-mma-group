@@ -6,9 +6,13 @@ import {
   ScrollView,
   Alert,
   RefreshControl,
+  TouchableOpacity,
+  TextInput,
+  Switch,
 } from "react-native";
 import nurseAPI from "../../services/nurseApi";
 import colors from "../../styles/colors";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 // Import components
 import ScreenHeader from "./components/ScreenHeader";
@@ -16,7 +20,29 @@ import LoadingScreen from "./components/LoadingScreen";
 import EmptyState from "./components/EmptyState";
 import ModalForm from "./components/ModalForm";
 import MedicalEventCard from "./components/MedicalEventCard";
-import MedicalEventForm from "./components/MedicalEventForm";
+import FormPicker from "../../components/common/FormPicker";
+import FormInput from "../../components/common/FormInput";
+import EventDetailModal from "./components/EventDetailModal";
+// Enums cho loại sự kiện và trạng thái
+const EVENT_TYPE = [
+  {label: "Tai nạn", value: "Accident"},
+  {label: "Sốt", value: "Fever"},
+  {label: "Chấn thương", value: "Injury"},
+  {label: "Dịch bệnh", value: "Epidemic"},
+  {label: "Khác", value: "Other"},
+];
+const EVENT_STATUS = [
+  {label: "Mở", value: "Open"},
+  {label: "Đang xử lý", value: "In Progress"},
+  {label: "Đã giải quyết", value: "Resolved"},
+  {label: "Chuyển viện", value: "Referred to Hospital"},
+];
+const EVENT_SEVERITY = [
+  {label: "Thấp", value: "Low"},
+  {label: "Trung bình", value: "Medium"},
+  {label: "Cao", value: "High"},
+  {label: "Khẩn cấp", value: "Emergency"},
+];
 
 const MedicalEventsScreen = ({navigation}) => {
   const [events, setEvents] = useState([]);
@@ -28,19 +54,40 @@ const MedicalEventsScreen = ({navigation}) => {
     studentId: "",
     event_type: "",
     description: "",
-    severity: "Medium",
+    status: "Open",
     symptoms: "",
     treatment_notes: "",
     follow_up_required: false,
+    severity: "", // Thêm trường severity
   });
 
+  const [medicationModalVisible, setMedicationModalVisible] = useState(false);
+  const [medicationForm, setMedicationForm] = useState({
+    name: "",
+    dosage: "",
+    time: new Date(),
+  });
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const loadEvents = async () => {
     try {
       setLoading(true);
       const response = await nurseAPI.getMedicalEvents();
-      setEvents(response);
+      // Đảm bảo lấy đúng mảng event
+      let eventList = [];
+      if (Array.isArray(response)) {
+        eventList = response;
+      } else if (Array.isArray(response.data)) {
+        eventList = response.data;
+      } else if (response && Array.isArray(response.events)) {
+        eventList = response.events;
+      }
+      console.log("Loaded events:", eventList);
+      setEvents(eventList);
     } catch (error) {
       console.error("Error loading events:", error);
+      setEvents([]); // Ensure events is always an array
       Alert.alert("Lỗi", "Không thể tải danh sách sự kiện y tế");
     } finally {
       setLoading(false);
@@ -50,9 +97,23 @@ const MedicalEventsScreen = ({navigation}) => {
   const loadStudents = async () => {
     try {
       const response = await nurseAPI.getStudents();
-      setStudents(response);
-      if (response.length > 0) {
-        setFormData((prev) => ({...prev, studentId: response[0]._id}));
+      let studentsArr = [];
+      if (Array.isArray(response)) {
+        studentsArr = response;
+      } else if (Array.isArray(response.data)) {
+        studentsArr = response.data;
+      } else if (response && Array.isArray(response.students)) {
+        studentsArr = response.students;
+      }
+      console.log("Loaded students:", studentsArr);
+      setStudents(studentsArr);
+      // Nếu chưa có studentId hoặc studentId không nằm trong danh sách, set lại
+      if (
+        studentsArr.length > 0 &&
+        (!formData.studentId ||
+          !studentsArr.some((s) => s._id === formData.studentId))
+      ) {
+        setFormData((prev) => ({...prev, studentId: studentsArr[0]._id}));
       }
     } catch (error) {
       console.error("Error loading students:", error);
@@ -71,20 +132,25 @@ const MedicalEventsScreen = ({navigation}) => {
   }, []);
 
   const handleCreateEvent = () => {
+    if (students.length === 0) {
+      Alert.alert("Lỗi", "Chưa có dữ liệu học sinh");
+      return;
+    }
     setFormData({
-      studentId: students.length > 0 ? students[0]._id : "",
+      studentId: students[0]._id,
       event_type: "",
       description: "",
-      severity: "Medium",
+      status: "Open",
       symptoms: "",
       treatment_notes: "",
       follow_up_required: false,
+      severity: "", // Thêm trường severity
     });
     setModalVisible(true);
   };
 
   const handleSaveEvent = async () => {
-    if (!formData.studentId || !formData.event_type || !formData.description) {
+    if (!formData.event_type || !formData.description) {
       Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc");
       return;
     }
@@ -109,59 +175,28 @@ const MedicalEventsScreen = ({navigation}) => {
   };
 
   const handleViewEvent = (event) => {
-    Alert.alert(
-      "Chi Tiết Sự Kiện",
-      `Loại: ${event.event_type}\nMức độ: ${event.severity}\nTrạng thái: ${event.status}\nMô tả: ${event.description}`,
-      [
-        {text: "Đóng"},
-        {
-          text: "Giải Quyết",
-          onPress: async () => {
-            try {
-              await nurseAPI.resolveEvent(event._id, "Đã xử lý xong");
-              Alert.alert("Thành công", "Đã giải quyết sự kiện y tế");
-              loadEvents();
-            } catch (error) {
-              console.error("Error resolving event:", error);
-              Alert.alert("Lỗi", "Không thể giải quyết sự kiện y tế");
-            }
-          },
-        },
-        {
-          text: "Thêm Thuốc",
-          onPress: async () => {
-            try {
-              await nurseAPI.addMedication(event._id, {
-                name: "Paracetamol",
-                dosage: "500mg",
-                time: Date.now(),
-              });
-              Alert.alert("Thành công", "Đã thêm thuốc");
-              loadEvents();
-            } catch (error) {
-              console.error("Error adding medication:", error);
-              Alert.alert("Lỗi", "Không thể thêm thuốc");
-            }
-          },
-        },
-        {
-          text: "Thông Báo PH",
-          onPress: async () => {
-            try {
-              await nurseAPI.updateParentNotification(event._id, {
-                status: true,
-                method: "Phone call",
-              });
-              Alert.alert("Thành công", "Đã thông báo cho phụ huynh");
-              loadEvents();
-            } catch (error) {
-              console.error("Error notifying parent:", error);
-              Alert.alert("Lỗi", "Không thể thông báo cho phụ huynh");
-            }
-          },
-        },
-      ]
-    );
+    setSelectedEvent(event);
+    setDetailModalVisible(true);
+  };
+
+  const handleSaveMedication = async () => {
+    if (!medicationForm.name || !medicationForm.dosage) {
+      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin thuốc");
+      return;
+    }
+    try {
+      await nurseAPI.addMedication(selectedEventId, {
+        name: medicationForm.name,
+        dosage: medicationForm.dosage,
+        time: medicationForm.time.toISOString(),
+      });
+      Alert.alert("Thành công", "Đã thêm thuốc");
+      setMedicationModalVisible(false);
+      loadEvents();
+    } catch (error) {
+      console.error("Error adding medication:", error);
+      Alert.alert("Lỗi", "Không thể thêm thuốc");
+    }
   };
 
   if (loading) {
@@ -169,75 +204,240 @@ const MedicalEventsScreen = ({navigation}) => {
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title="Quản Lý Sự Kiện Y Tế"
-        onBack={() => navigation.goBack()}
-        onAdd={handleCreateEvent}
-        backgroundColor="#FF6B6B"
-      />
-
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{events.length}</Text>
-            <Text style={styles.statLabel}>Tổng Sự Kiện</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {events.filter((e) => e.status === "Open").length}
-            </Text>
-            <Text style={styles.statLabel}>Đang Xử Lý</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {events.filter((e) => e.severity === "Emergency").length}
-            </Text>
-            <Text style={styles.statLabel}>Khẩn Cấp</Text>
-          </View>
-        </View>
-
-        <View style={styles.eventsContainer}>
-          {events.length === 0 ? (
-            <EmptyState message="Không có sự kiện y tế nào" />
-          ) : (
-            events.map((event, index) => (
-              <MedicalEventCard
-                key={event._id || index}
-                event={event}
-                onPress={handleViewEvent}
-              />
-            ))
-          )}
-        </View>
-      </ScrollView>
-
-      <ModalForm
-        visible={modalVisible}
-        title="Tạo Sự Kiện Y Tế Mới"
-        onClose={() => setModalVisible(false)}
-        onSave={handleSaveEvent}
-        saveButtonText="Tạo Sự Kiện"
-        disabled={
-          !formData.studentId || !formData.event_type || !formData.description
-        }
-      >
-        <MedicalEventForm
-          formData={formData}
-          setFormData={setFormData}
-          students={students}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <ScreenHeader
+          title="Quản Lý Sự Kiện Y Tế"
+          onBack={() => navigation.goBack()}
+          backgroundColor="#FF6B6B"
         />
-      </ModalForm>
-    </View>
+
+        <ScrollView
+          style={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <View style={styles.statsContainer}>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{events.length}</Text>
+              <Text style={styles.statLabel}>Tổng Sự Kiện</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>
+                {events.filter((e) => e.status === "Open").length}
+              </Text>
+              <Text style={styles.statLabel}>Đang Xử Lý</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>
+                {events.filter((e) => e.severity === "Emergency").length}
+              </Text>
+              <Text style={styles.statLabel}>Khẩn Cấp</Text>
+            </View>
+          </View>
+
+          <View style={styles.eventsContainer}>
+            {events.length === 0 ? (
+              <EmptyState message="Không có sự kiện y tế nào" />
+            ) : (
+              events.map((event, index) => (
+                <MedicalEventCard
+                  key={event._id || index}
+                  event={event}
+                  onPress={handleViewEvent}
+                />
+              ))
+            )}
+          </View>
+        </ScrollView>
+
+        <ModalForm
+          visible={modalVisible}
+          title="Tạo Sự Kiện Y Tế Mới"
+          onClose={() => setModalVisible(false)}
+          onSave={handleSaveEvent}
+          saveButtonText="Tạo Sự Kiện"
+          disabled={
+            !formData.studentId ||
+            !formData.event_type ||
+            !formData.description ||
+            !formData.severity
+          }
+        >
+          <View style={{gap: 16}}>
+            <FormPicker
+              label="Học sinh"
+              value={formData.studentId}
+              onValueChange={(value) =>
+                setFormData((f) => ({...f, studentId: value}))
+              }
+              options={
+                Array.isArray(students)
+                  ? students.map((student) => ({
+                      label: `${student.first_name} ${student.last_name} - ${student.class_name}`,
+                      value: student._id,
+                    }))
+                  : []
+              }
+              placeholder={
+                students.length === 0 ? "Đang tải..." : "Chọn học sinh"
+              }
+              required={true}
+              error={!formData.studentId}
+            />
+            <FormPicker
+              label="Loại sự kiện "
+              value={formData.event_type}
+              onValueChange={(value) =>
+                setFormData((f) => ({...f, event_type: value}))
+              }
+              options={EVENT_TYPE}
+              placeholder="Chọn loại sự kiện"
+              required={true}
+              error={!formData.event_type}
+            />
+            <FormPicker
+              label="Mức độ nghiêm trọng"
+              value={formData.severity}
+              onValueChange={(value) =>
+                setFormData((f) => ({...f, severity: value}))
+              }
+              options={EVENT_SEVERITY}
+              placeholder="Chọn mức độ"
+              required={true}
+              error={!formData.severity}
+            />
+            <FormInput
+              label="Mô tả chi tiết"
+              value={formData.description}
+              onChangeText={(text) =>
+                setFormData((f) => ({...f, description: text}))
+              }
+              placeholder="Mô tả chi tiết về sự kiện y tế..."
+              multiline={true}
+              numberOfLines={3}
+              required={true}
+              error={!formData.description}
+            />
+            <FormPicker
+              label="Trạng thái"
+              value={formData.status}
+              onValueChange={(value) =>
+                setFormData((f) => ({...f, status: value}))
+              }
+              options={EVENT_STATUS}
+              placeholder="Chọn trạng thái"
+            />
+            <FormInput
+              label="Triệu chứng"
+              value={formData.symptoms}
+              onChangeText={(text) =>
+                setFormData((f) => ({...f, symptoms: text}))
+              }
+              placeholder="Ví dụ: Sốt, Đau đầu, Buồn nôn (phân cách bằng dấu phẩy)"
+            />
+            <FormInput
+              label="Ghi chú điều trị"
+              value={formData.treatment_notes}
+              onChangeText={(text) =>
+                setFormData((f) => ({...f, treatment_notes: text}))
+              }
+              placeholder="Ghi chú về điều trị..."
+              multiline={true}
+              numberOfLines={2}
+            />
+            <View style={styles.switchContainer}>
+              <Text style={styles.switchLabel}>Cần theo dõi tiếp</Text>
+              <Switch
+                value={formData.follow_up_required}
+                onValueChange={(value) =>
+                  setFormData((f) => ({...f, follow_up_required: value}))
+                }
+                trackColor={{false: "#767577", true: colors.primary}}
+                thumbColor={formData.follow_up_required ? "#fff" : "#f4f3f4"}
+              />
+            </View>
+          </View>
+        </ModalForm>
+
+        <ModalForm
+          visible={medicationModalVisible}
+          title="Thêm Thuốc Cho Sự Kiện"
+          onClose={() => setMedicationModalVisible(false)}
+          onSave={handleSaveMedication}
+          saveButtonText="Lưu Thuốc"
+          disabled={!medicationForm.name || !medicationForm.dosage}
+        >
+          <View style={{gap: 16}}>
+            <Text style={{fontWeight: "bold"}}>Tên thuốc *</Text>
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: "#ccc",
+                borderRadius: 8,
+                padding: 10,
+              }}
+              value={medicationForm.name}
+              onChangeText={(text) =>
+                setMedicationForm((f) => ({...f, name: text}))
+              }
+              placeholder="Nhập tên thuốc"
+            />
+            <Text style={{fontWeight: "bold"}}>Liều lượng *</Text>
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: "#ccc",
+                borderRadius: 8,
+                padding: 10,
+              }}
+              value={medicationForm.dosage}
+              onChangeText={(text) =>
+                setMedicationForm((f) => ({...f, dosage: text}))
+              }
+              placeholder="Nhập liều lượng"
+            />
+            <Text style={{fontWeight: "bold"}}>Thời gian</Text>
+            <View
+              style={{
+                padding: 10,
+                borderWidth: 1,
+                borderColor: "#ccc",
+                borderRadius: 8,
+                backgroundColor: "#f5f5f5",
+              }}
+            >
+              <Text>{medicationForm.time.toLocaleString()}</Text>
+            </View>
+          </View>
+        </ModalForm>
+
+        <EventDetailModal
+          visible={detailModalVisible}
+          onClose={() => setDetailModalVisible(false)}
+          data={selectedEvent || {}}
+          title="Chi Tiết Sự Kiện"
+          actions={[]}
+        />
+
+        {/* FAB Create Button */}
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={handleCreateEvent}
+        >
+          <Text style={styles.createButtonText}>+</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -279,6 +479,41 @@ const styles = StyleSheet.create({
   eventsContainer: {
     padding: 20,
     gap: 15,
+  },
+  createButton: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: colors.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  createButtonText: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  switchContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    marginBottom: 15,
+  },
+  switchLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

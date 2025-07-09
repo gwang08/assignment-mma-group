@@ -1,6 +1,5 @@
 import React from "react";
 import {View, Text, TouchableOpacity, StyleSheet} from "react-native";
-import colors from "../../../styles/colors";
 
 const ScreenHeader = ({title, onBack, onAdd, backgroundColor = "#96CEB4"}) => {
   return (
@@ -9,13 +8,6 @@ const ScreenHeader = ({title, onBack, onAdd, backgroundColor = "#96CEB4"}) => {
         <Text style={styles.backText}>← Quay lại</Text>
       </TouchableOpacity>
       <Text style={styles.title}>{title}</Text>
-      {onAdd ? (
-        <TouchableOpacity onPress={onAdd} style={styles.addButton}>
-          <Text style={styles.addText}>+</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.placeholder} />
-      )}
     </View>
   );
 };

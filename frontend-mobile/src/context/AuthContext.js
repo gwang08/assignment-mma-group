@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useReducer, useEffect } from "react";
-import { authAPI, storageAPI } from "../services/api";
+import React, {createContext, useContext, useReducer, useEffect} from "react";
+import {authAPI, storageAPI} from "../services/api";
 
 // Initial state
 const initialState = {
@@ -68,14 +68,14 @@ function authReducer(prevState, action) {
 const AuthContext = createContext();
 
 // Provider
-export const AuthProvider = ({ children }) => {
+export const AuthProvider = ({children}) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   // Khôi phục token khi app khởi động
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
-        const { token, userData, userType } = await storageAPI.getUserData();
+        const {token, userData, userType} = await storageAPI.getUserData();
 
         dispatch({
           type: AUTH_ACTIONS.RESTORE_TOKEN,
@@ -101,13 +101,13 @@ export const AuthProvider = ({ children }) => {
   const authMethods = {
     signIn: async (username, password) => {
       try {
-        dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: true });
+        dispatch({type: AUTH_ACTIONS.SET_LOADING, loading: true});
 
         // API mới chỉ cần username và password, backend tự nhận biết role
         const response = await authAPI.login(username, password);
 
         if (response.success) {
-          const { token, user } = response.data;
+          const {token, user} = response.data;
           const userType = user.role; // Lấy role từ user data trả về
 
           // Lưu vào AsyncStorage
@@ -121,12 +121,12 @@ export const AuthProvider = ({ children }) => {
             userType,
           });
 
-          return { success: true };
+          return {success: true};
         } else {
           throw new Error(response.message || "Login failed");
         }
       } catch (error) {
-        dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: false });
+        dispatch({type: AUTH_ACTIONS.SET_LOADING, loading: false});
         return {
           success: false,
           message: error.message || "Network error",
@@ -136,20 +136,20 @@ export const AuthProvider = ({ children }) => {
 
     signUp: async (userData) => {
       try {
-        dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: true });
+        dispatch({type: AUTH_ACTIONS.SET_LOADING, loading: true});
 
         // API mới mặc định tạo tài khoản parent
         const response = await authAPI.register(userData);
 
-        dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: false });
+        dispatch({type: AUTH_ACTIONS.SET_LOADING, loading: false});
 
         if (response.success) {
-          return { success: true, message: "Registration successful" };
+          return {success: true, message: "Registration successful"};
         } else {
           throw new Error(response.message || "Registration failed");
         }
       } catch (error) {
-        dispatch({ type: AUTH_ACTIONS.SET_LOADING, loading: false });
+        dispatch({type: AUTH_ACTIONS.SET_LOADING, loading: false});
         return {
           success: false,
           message: error.message || "Network error",
@@ -160,11 +160,11 @@ export const AuthProvider = ({ children }) => {
     signOut: async () => {
       try {
         await authAPI.logout();
-        dispatch({ type: AUTH_ACTIONS.SIGN_OUT });
+        dispatch({type: AUTH_ACTIONS.SIGN_OUT});
       } catch (error) {
         console.error("Sign out error:", error);
         // Vẫn đăng xuất dù có lỗi
-        dispatch({ type: AUTH_ACTIONS.SIGN_OUT });
+        dispatch({type: AUTH_ACTIONS.SIGN_OUT});
       }
     },
 
@@ -177,7 +177,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, ...authMethods }}>
+    <AuthContext.Provider value={{...state, ...authMethods}}>
       {children}
     </AuthContext.Provider>
   );

@@ -30,7 +30,7 @@ const MedicineRequestsList = ({requests}) => {
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Yêu Cầu Thuốc Gần Đây</Text>
       <View style={styles.requestsContainer}>
-        {requests.map((request, index) => (
+        {requests.slice(0, 4).map((request, index) => (
           <View key={request._id || index} style={styles.requestItem}>
             <View style={styles.requestHeader}>
               <Text style={styles.requestMedicine}>

@@ -60,12 +60,26 @@ const MedicalEventCard = ({event, onPress}) => {
         {event.description}
       </Text>
       <Text style={styles.eventStudent}>
-        Học sinh: {event.student?.first_name} {event.student?.last_name} -{" "}
-        {event.student?.class_name}
+        {typeof event.student === "object" && event.student !== null
+          ? `Học sinh: ${event.student.first_name} ${event.student.last_name} - ${event.student.class_name}`
+          : "Học sinh: (không có thông tin)"}
       </Text>
-      <Text style={styles.eventDate}>
-        {new Date(event.createdAt).toLocaleDateString("vi-VN")}
-      </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Text style={styles.eventDate}>
+          {new Date(event.createdAt).toLocaleDateString("vi-VN")}
+        </Text>
+        <Text style={styles.eventDate}>
+          {typeof event.created_by === "object" && event.created_by !== null
+            ? `Tạo bởi: ${event.created_by.first_name} ${event.created_by.last_name}`
+            : "Tạo bởi: (Không rõ)"}
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 };
