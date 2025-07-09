@@ -19,6 +19,8 @@ const FormPicker = ({
   required = false,
   error = false,
   title = "Chọn tùy chọn",
+  hideLabel = false,
+  containerStyle = {},
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [search, setSearch] = useState("");
@@ -29,10 +31,12 @@ const FormPicker = ({
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>
-        {label} {required && <Text style={styles.required}>*</Text>}
-      </Text>
+    <View style={[styles.container, containerStyle]}>
+      {!hideLabel && (
+        <Text style={styles.label}>
+          {label} {required && <Text style={styles.required}>*</Text>}
+        </Text>
+      )}
       <TouchableOpacity
         style={[styles.pickerContainer, error && styles.pickerContainerError]}
         onPress={() => setModalVisible(true)}
