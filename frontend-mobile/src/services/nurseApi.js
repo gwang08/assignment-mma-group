@@ -249,12 +249,22 @@ export const nurseAPI = {
   // Consultations - Only GET is implemented in backend
   getConsultations: async () => {
     try {
-      const response = await api.get("/nurse/consultations", {
+      const response = await api.get("/nurse/consultation-schedules", {
         headers: {"Cache-Control": "no-cache"},
       });
       return response.data;
     } catch (error) {
       console.error("Get consultations error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+  createConsultationSchedule: async (data) => {
+    try {
+      const response = await api.post("/nurse/consultation-schedules", data);
+      return response.data;
+    } catch (error) {
+      console.error("Create consultation schedule error:", error);
       throw error.response?.data || {message: "Network error"};
     }
   },
@@ -281,6 +291,30 @@ export const nurseAPI = {
       return response.data;
     } catch (error) {
       console.error("Get student health profile error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+  getCampaigns: async () => {
+    try {
+      const response = await api.get("/nurse/campaigns/", {
+        headers: {"Cache-Control": "no-cache"},
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Get campaigns error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+  getStudentParentRelations: async () => {
+    try {
+      const response = await api.get("/nurse/student-parent-relations", {
+        headers: {"Cache-Control": "no-cache"},
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Get student-parent relations error:", error);
       throw error.response?.data || {message: "Network error"};
     }
   },
