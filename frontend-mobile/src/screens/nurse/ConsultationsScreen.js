@@ -11,6 +11,7 @@ import {
 import nurseAPI from "../../services/nurseApi";
 import colors from "../../styles/colors";
 import {SafeAreaView} from "react-native-safe-area-context";
+import {formatDuration} from "../../utils/timeUtils";
 
 // Import components
 import ScreenHeader from "./components/ScreenHeader";
@@ -23,6 +24,7 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 
 import ConsultationCreateForm from "./components/ConsultationCreateForm";
 import ConsultationDetailModal from "./components/ConsultationDetailModal";
+import ConsultationEditModal from "./components/ConsultationEditModal";
 
 const ConsultationsScreen = ({navigation}) => {
   const [consultations, setConsultations] = useState([]);
@@ -31,7 +33,6 @@ const ConsultationsScreen = ({navigation}) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [formData, setFormData] = useState({
     campaignResult: "",
-    student: "",
     attending_parent: "",
     scheduledDate: "",
     duration: "30",
@@ -43,8 +44,8 @@ const ConsultationsScreen = ({navigation}) => {
   const [filterValue, setFilterValue] = useState("");
   const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [campaigns, setCampaigns] = useState([]);
-  const [students, setStudents] = useState([]);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [campaignResults, setCampaignResults] = useState([]);
   const [parentRelations, setParentRelations] = useState([]);
   const [filteredParents, setFilteredParents] = useState([]);
 
@@ -52,7 +53,6 @@ const ConsultationsScreen = ({navigation}) => {
     try {
       setLoading(true);
       const response = await nurseAPI.getConsultations();
-      console.log("response.data:", response);
       let arr = [];
       if (Array.isArray(response)) arr = response;
       else if (Array.isArray(response.data)) arr = response.data;
@@ -78,24 +78,19 @@ const ConsultationsScreen = ({navigation}) => {
     loadConsultations();
   }, []);
 
-  // Fetch campaign, students, parent relations khi mở modal
+  // Fetch campaign results and parent relations khi mở modal
   useEffect(() => {
     if (modalVisible) {
       nurseAPI
-        .getCampaigns()
-        .then((res) => {
-          console.log("response.data:", JSON.stringify(res, null, 2));
-          let arr = Array.isArray(res) ? res : res?.data || [];
-          setCampaigns(arr);
-        })
-        .catch(() => setCampaigns([]));
-      nurseAPI
-        .getStudents()
+        .getAllCampaignResults()
         .then((res) => {
           let arr = Array.isArray(res) ? res : res?.data || [];
-          setStudents(arr);
+          setCampaignResults(arr);
         })
-        .catch(() => setStudents([]));
+        .catch((error) => {
+          console.error("Error fetching campaign results:", error);
+          setCampaignResults([]);
+        });
       nurseAPI
         .getStudentParentRelations()
         .then((res) => {
@@ -106,17 +101,28 @@ const ConsultationsScreen = ({navigation}) => {
     }
   }, [modalVisible]);
 
-  // Lọc phụ huynh khi chọn học sinh
+  // Lọc phụ huynh khi chọn campaign result (học sinh)
   useEffect(() => {
-    if (!formData.student) {
+    if (!formData.campaignResult) {
       setFilteredParents([]);
       return;
     }
+
+    // Tìm campaign result được chọn để lấy thông tin học sinh
+    const selectedCampaignResult = campaignResults.find(
+      (cr) => cr._id === formData.campaignResult
+    );
+
+    if (!selectedCampaignResult?.student?._id) {
+      setFilteredParents([]);
+      return;
+    }
+
     const relations = parentRelations.filter(
-      (r) => r.student?._id === formData.student
+      (r) => r.student?._id === selectedCampaignResult.student._id
     );
     setFilteredParents(relations.map((r) => r.parent));
-  }, [formData.student, parentRelations]);
+  }, [formData.campaignResult, parentRelations, campaignResults]);
 
   // Lọc consultations theo search/filter
   const filteredConsultations = consultations.filter((c) => {
@@ -132,15 +138,64 @@ const ConsultationsScreen = ({navigation}) => {
   });
 
   const handleCreateConsultation = async () => {
-    if (!formData.student || !formData.scheduledDate || !formData.reason) {
+    if (
+      !formData.campaignResult ||
+      !formData.scheduledDate ||
+      !formData.reason
+    ) {
       Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin bắt buộc");
       return;
     }
+
+    // Tìm campaign result được chọn để lấy thông tin học sinh
+    const selectedCampaignResult = campaignResults.find(
+      (cr) => cr._id === formData.campaignResult
+    );
+
+    if (!selectedCampaignResult?.student?._id) {
+      Alert.alert("Lỗi", "Không tìm thấy thông tin học sinh");
+      return;
+    }
+
+    // Kiểm tra xung đột lịch trước khi tạo
+    try {
+      const overlapResult = await nurseAPI.checkConsultationOverlap(
+        formData.scheduledDate,
+        formData.duration
+      );
+
+      if (overlapResult.data?.hasOverlap) {
+        const conflict = overlapResult.data.conflictingConsultation;
+        const formatDate = (dateString) => {
+          const date = new Date(dateString);
+          return date.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          });
+        };
+
+        Alert.alert(
+          "Xung đột lịch",
+          `Không thể tạo lịch tư vấn vì xung đột với lịch khác:\n\nHọc sinh: ${
+            conflict.studentName
+          }\nNgày: ${formatDate(
+            conflict.scheduledDate
+          )}\nThời lượng: ${formatDuration(conflict.duration)}`,
+          [{text: "OK"}]
+        );
+        return;
+      }
+    } catch (error) {
+      Alert.alert("Lỗi", "Không thể kiểm tra xung đột lịch: " + error.message);
+      return;
+    }
+
     setCreating(true);
     try {
       await nurseAPI.createConsultationSchedule({
         campaignResult: formData.campaignResult,
-        student: formData.student,
+        student: selectedCampaignResult.student._id,
         attending_parent: formData.attending_parent,
         scheduledDate: formData.scheduledDate,
         duration: formData.duration,
@@ -151,7 +206,6 @@ const ConsultationsScreen = ({navigation}) => {
       setModalVisible(false);
       setFormData({
         campaignResult: "",
-        student: "",
         attending_parent: "",
         scheduledDate: "",
         duration: "30",
@@ -160,7 +214,7 @@ const ConsultationsScreen = ({navigation}) => {
       });
       loadConsultations();
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể tạo lịch tư vấn");
+      Alert.alert("Lỗi", error.message);
     }
     setCreating(false);
   };
@@ -168,6 +222,15 @@ const ConsultationsScreen = ({navigation}) => {
   const handleViewConsultation = (consultation) => {
     setSelectedConsultation(consultation);
     setDetailModalVisible(true);
+  };
+
+  const handleEditConsultation = () => {
+    setDetailModalVisible(false);
+    setEditModalVisible(true);
+  };
+
+  const handleUpdateConsultation = () => {
+    loadConsultations();
   };
 
   if (loading) {
@@ -235,6 +298,14 @@ const ConsultationsScreen = ({navigation}) => {
           visible={detailModalVisible}
           consultation={selectedConsultation}
           onClose={() => setDetailModalVisible(false)}
+          onEdit={handleEditConsultation}
+        />
+        {/* Modal chỉnh sửa lịch tư vấn */}
+        <ConsultationEditModal
+          visible={editModalVisible}
+          consultation={selectedConsultation}
+          onClose={() => setEditModalVisible(false)}
+          onUpdate={handleUpdateConsultation}
         />
         {/* Modal tạo mới lịch tư vấn */}
         <ConsultationCreateForm
@@ -255,8 +326,7 @@ const ConsultationsScreen = ({navigation}) => {
               notes: "",
             });
           }}
-          campaigns={campaigns}
-          students={students}
+          campaigns={campaignResults}
           filteredParents={filteredParents}
         />
       </View>

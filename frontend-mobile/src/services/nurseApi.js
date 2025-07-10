@@ -269,6 +269,35 @@ export const nurseAPI = {
     }
   },
 
+  updateConsultationSchedule: async (scheduleId, updateData) => {
+    try {
+      const response = await api.put(
+        `/nurse/consultation-schedules/${scheduleId}`,
+        updateData
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Update consultation schedule error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+  checkConsultationOverlap: async (scheduledDate, duration = 30) => {
+    try {
+      const response = await api.post(
+        "/nurse/consultation-schedules/check-overlap",
+        {
+          scheduledDate,
+          duration: parseInt(duration),
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Check consultation overlap error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
   // Students Management
   getStudents: async () => {
     try {
@@ -303,6 +332,30 @@ export const nurseAPI = {
       return response.data;
     } catch (error) {
       console.error("Get campaigns error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+  getCampaignResults: async (campaignId) => {
+    try {
+      const response = await api.get(`/nurse/campaigns/${campaignId}/results`, {
+        headers: {"Cache-Control": "no-cache"},
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Get campaign results error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+  getAllCampaignResults: async () => {
+    try {
+      const response = await api.get("/nurse/campaign-results", {
+        headers: {"Cache-Control": "no-cache"},
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Get all campaign results error:", error);
       throw error.response?.data || {message: "Network error"};
     }
   },

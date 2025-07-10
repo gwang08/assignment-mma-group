@@ -9,7 +9,6 @@ import {
   StyleSheet,
 } from "react-native";
 import colors from "../../styles/colors";
-import ReactMemo from "react";
 
 const FormPicker = ({
   label,
@@ -201,4 +200,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default React.memo(FormPicker);
+export default FormPicker;

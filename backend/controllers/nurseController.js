@@ -6,7 +6,11 @@ const Campaign = require("../models/campaign/campaign");
 const CampaignResult = require("../models/campaign/campaignResult");
 const CampaignConsent = require("../models/campaign/campaignConsent");
 const ConsultationSchedule = require("../models/campaign/consultationSchedule");
-const {CAMPAIGN_TYPE, CAMPAIGN_CONSENT_STATUS} = require("../utils/enums");
+const {
+  CAMPAIGN_TYPE,
+  CAMPAIGN_CONSENT_STATUS,
+  CONSULTATION_STATUS,
+} = require("../utils/enums");
 const StudentParent = require("../models/user/studentParent");
 
 // Helper function to validate a student ID
@@ -1103,6 +1107,71 @@ class NurseController {
     }
   }
 
+  static async updateConsultationSchedule(req, res, next) {
+    try {
+      const {scheduleId} = req.params;
+      const {status, reason, notes} = req.body;
+
+      // Validate required fields
+      if (!status && !reason && !notes) {
+        return res.status(400).json({
+          success: false,
+          error:
+            "At least one field must be provided: status, reason, or notes",
+        });
+      }
+
+      // Validate status enum if provided
+      if (status !== undefined) {
+        const validStatuses = Object.values(CONSULTATION_STATUS);
+        if (!validStatuses.includes(status)) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid status. Must be one of: ${validStatuses.join(
+              ", "
+            )}`,
+          });
+        }
+      }
+
+      // Find the consultation schedule
+      const consultation = await ConsultationSchedule.findById(scheduleId);
+      if (!consultation) {
+        return res.status(404).json({
+          success: false,
+          error: "Consultation schedule not found",
+        });
+      }
+
+      // Update the fields
+      if (status !== undefined) consultation.status = status;
+      if (reason !== undefined) consultation.reason = reason;
+      if (notes !== undefined) consultation.notes = notes;
+
+      await consultation.save();
+
+      // Populate the updated consultation
+      const updatedConsultation = await ConsultationSchedule.findById(
+        scheduleId
+      )
+        .populate("campaignResult")
+        .populate("student", "first_name last_name class_name")
+        .populate("medicalStaff", "first_name last_name")
+        .populate("attending_parent", "first_name last_name");
+
+      res.json({
+        success: true,
+        data: updatedConsultation,
+      });
+    } catch (error) {
+      console.error("Error updating consultation schedule:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to update consultation schedule",
+      });
+    }
+  }
+
   // General Campaign Management
   static async getCampaigns(req, res, next) {
     try {
@@ -1252,6 +1321,27 @@ class NurseController {
     }
   }
 
+  static async getAllCampaignResults(req, res, next) {
+    try {
+      const results = await CampaignResult.find()
+        .populate("campaign", "title campaign_type")
+        .populate("student", "first_name last_name class_name")
+        .populate("created_by", "first_name last_name")
+        .sort({createdAt: -1});
+
+      res.json({
+        success: true,
+        data: results,
+      });
+    } catch (error) {
+      console.error("Error fetching all campaign results:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch campaign results",
+      });
+    }
+  }
+
   static async submitCampaignResult(req, res, next) {
     try {
       const {campaign, student, notes, vaccination_details, checkupDetails} =
@@ -1303,7 +1393,7 @@ class NurseController {
           },
         })
         .populate("student", "first_name last_name class_name")
-        .populate("attending_parent", "first_name last_name email") // <-- thêm dòng này
+        .populate("attending_parent", "first_name last_name email phone_number") // <-- thêm dòng này
         .sort({scheduledDate: 1});
 
       res.json(schedules);

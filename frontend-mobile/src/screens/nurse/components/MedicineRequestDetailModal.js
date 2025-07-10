@@ -92,12 +92,6 @@ const MedicineRequestDetailModal = ({
                           {med.frequency}
                         </Text>
                       )}
-                      {med.duration && (
-                        <Text style={{marginLeft: 12}}>
-                          <Text style={{fontWeight: "bold"}}>Thời gian:</Text>{" "}
-                          {med.duration}
-                        </Text>
-                      )}
                       {med.note && (
                         <Text style={{marginLeft: 12}}>
                           <Text style={{fontWeight: "bold"}}>Ghi chú:</Text>{" "}
