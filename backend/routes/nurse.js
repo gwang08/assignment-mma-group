@@ -1,7 +1,7 @@
 var express = require("express");
 var router = express.Router();
 const NurseController = require("../controllers/nurseController");
-const { authenticateMedicalStaff } = require("../middleware/auth"); // Import the JWT medical staff authentication middleware
+const {authenticateMedicalStaff} = require("../middleware/auth"); // Import the JWT medical staff authentication middleware
 
 /**
  * @swagger
@@ -371,17 +371,53 @@ router.put(
 /* Medicine & Supplies Management Routes */
 router.get("/medicine-requests", NurseController.getMedicineRequests);
 router.get("/medicine-inventory", NurseController.getMedicineInventory);
-router.put("/medicine-requests/:requestId/status", NurseController.updateMedicineRequestStatus);
+router.put(
+  "/medicine-requests/:requestId/status",
+  NurseController.updateMedicineRequestStatus
+);
 
 /* General Campaign Management Routes */
-router.get("/campaigns", authenticateMedicalStaff, NurseController.getCampaigns);
-router.post("/campaigns", authenticateMedicalStaff, NurseController.createCampaign);
-router.put("/campaigns/:campaignId", authenticateMedicalStaff, NurseController.updateCampaign);
-router.get("/campaigns/:campaignId/consents", authenticateMedicalStaff, NurseController.getCampaignConsents);
-router.get("/campaigns/:campaignId/results", authenticateMedicalStaff, NurseController.getCampaignResults);
-router.post("/campaign-results", authenticateMedicalStaff, NurseController.submitCampaignResult);
+router.get(
+  "/campaigns",
+  authenticateMedicalStaff,
+  NurseController.getCampaigns
+);
+router.post(
+  "/campaigns",
+  authenticateMedicalStaff,
+  NurseController.createCampaign
+);
+router.put(
+  "/campaigns/:campaignId",
+  authenticateMedicalStaff,
+  NurseController.updateCampaign
+);
+router.get(
+  "/campaigns/:campaignId/consents",
+  authenticateMedicalStaff,
+  NurseController.getCampaignConsents
+);
+router.get(
+  "/campaigns/:campaignId/results",
+  authenticateMedicalStaff,
+  NurseController.getCampaignResults
+);
+router.get(
+  "/campaign-results",
+  authenticateMedicalStaff,
+  NurseController.getAllCampaignResults
+);
+router.post(
+  "/campaign-results",
+  authenticateMedicalStaff,
+  NurseController.submitCampaignResult
+);
 router.get("/consultation-schedules", NurseController.getConsultationSchedules);
-router.post("/consultation-schedules/check-overlap", authenticateMedicalStaff, NurseController.checkConsultationOverlap);
+router.post(
+  "/consultation-schedules/check-overlap",
+  authenticateMedicalStaff,
+  NurseController.checkConsultationOverlap
+);
 
 /* Vaccination Management Routes */
 router.get("/vaccination-campaigns", NurseController.getVaccinationCampaigns);
@@ -417,10 +453,7 @@ router.put(
   "/vaccination-results/:resultId/follow-up",
   NurseController.updateVaccinationFollowUp
 );
-router.get(
-  "/vaccination-statistics",
-  NurseController.getVaccinationStatistics
-);
+router.get("/vaccination-statistics", NurseController.getVaccinationStatistics);
 
 /* Periodic Health Check Management Routes */
 router.get("/health-check-campaigns", NurseController.getHealthCheckCampaigns);
@@ -439,13 +472,26 @@ router.post(
 
 /* Consultation Management Routes */
 router.get("/consultations", NurseController.getConsultations);
-router.post("/consultation-schedules", authenticateMedicalStaff, NurseController.createConsultationSchedule);
+router.post(
+  "/consultation-schedules",
+  authenticateMedicalStaff,
+  NurseController.createConsultationSchedule
+);
+router.put(
+  "/consultation-schedules/:scheduleId",
+  authenticateMedicalStaff,
+  NurseController.updateConsultationSchedule
+);
 
 /* Medical Staff Management Routes */
 router.get("/medical-staff", NurseController.getMedicalStaff);
 
 /* Student-Parent Relations Routes */
-router.get("/student-parent-relations", authenticateMedicalStaff, NurseController.getStudentParentRelations);
+router.get(
+  "/student-parent-relations",
+  authenticateMedicalStaff,
+  NurseController.getStudentParentRelations
+);
 
 /* Student Health Records Management Routes */
 router.get("/students", authenticateMedicalStaff, NurseController.getStudents);

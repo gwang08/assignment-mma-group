@@ -1,6 +1,7 @@
 import React from "react";
 import {View, Text, TouchableOpacity, StyleSheet} from "react-native";
 import colors from "../../../styles/colors";
+import {formatDuration} from "../../../utils/timeUtils";
 
 const ConsultationCard = ({consultation, onPress}) => {
   const getStatusColor = (status) => {
@@ -40,8 +41,8 @@ const ConsultationCard = ({consultation, onPress}) => {
         {consultation.reason}
       </Text>
       <Text style={styles.consultationDate}>
-        {new Date(consultation.scheduled_date).toLocaleDateString("vi-VN")} -{" "}
-        {consultation.scheduled_time}
+        {new Date(consultation.scheduledDate).toLocaleDateString("vi-VN")} -{" "}
+        {formatDuration(consultation.duration)}
       </Text>
       <Text style={styles.consultationClass}>
         Lớp: {consultation.student?.class_name}

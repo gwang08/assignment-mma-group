@@ -1,6 +1,8 @@
 import React from "react";
 import {Modal, View, Text, TouchableOpacity, ScrollView} from "react-native";
 import colors from "../../../styles/colors";
+import {formatVietnamesePhoneNumber} from "../../../utils/phoneUtils";
+import {formatDuration} from "../../../utils/timeUtils";
 
 function InfoGroup({title, children}) {
   return (
@@ -24,6 +26,7 @@ export default function ConsultationDetailModal({
   visible,
   consultation,
   onClose,
+  onEdit,
 }) {
   if (!consultation) return null;
   return (
@@ -73,21 +76,30 @@ export default function ConsultationDetailModal({
             showsVerticalScrollIndicator={false}
           >
             <InfoGroup title="Thông tin học sinh">
-              <Text style={{fontSize: 16, marginBottom: 4}}>
+              <Text style={{fontSize: 16, marginBottom: 2}}>
                 Họ tên: {consultation.student?.first_name || ""}{" "}
                 {consultation.student?.last_name || "" || "Không có"}
               </Text>
+              <Text style={{fontSize: 16, marginBottom: 0}}>
+                Lớp: {consultation.student?.class_name || "Không có"}
+              </Text>
             </InfoGroup>
             <InfoGroup title="Thông tin phụ huynh">
-              <Text style={{fontSize: 16, marginBottom: 4}}>
+              <Text style={{fontSize: 16, marginBottom: 2}}>
                 Họ tên: {consultation.attending_parent?.first_name || ""}{" "}
                 {consultation.attending_parent?.last_name || "" || "Không có"}
+              </Text>
+              <Text style={{fontSize: 16, marginBottom: 0}}>
+                Số điện thoại:{" "}
+                {formatVietnamesePhoneNumber(
+                  consultation.attending_parent?.phone_number
+                )}
               </Text>
             </InfoGroup>
             <InfoGroup title="Thông tin lịch tư vấn">
               <Text style={{fontSize: 16, marginBottom: 4}}>
-                Chiến dịch:{" "}
-                {consultation.campaignResult?.title ||
+                Tiêu đề:{" "}
+                {consultation.campaignResult?.campaign?.title ||
                   consultation.campaignResult ||
                   "Không có"}
               </Text>
@@ -101,13 +113,35 @@ export default function ConsultationDetailModal({
               </Text>
 
               <Text style={{fontSize: 16, marginBottom: 4}}>
-                Thời lượng: {consultation.duration || "Không có"} phút
+                Thời lượng:{" "}
+                {formatDuration(consultation.duration) || "Không có"}
               </Text>
               <Text style={{fontSize: 16, marginBottom: 4}}>
                 Lý do: {consultation.reason || "Không có"}
               </Text>
               <Text style={{fontSize: 16, marginBottom: 4}}>
-                Trạng thái: {consultation.status || "Không có"}
+                Trạng thái:{" "}
+                <Text
+                  style={{
+                    color:
+                      consultation.status === "Scheduled"
+                        ? "#007AFF"
+                        : consultation.status === "Completed"
+                        ? "#34C759"
+                        : consultation.status === "Cancelled"
+                        ? "#FF3B30"
+                        : "#666",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {consultation.status === "Scheduled"
+                    ? "Đã lên lịch"
+                    : consultation.status === "Completed"
+                    ? "Hoàn thành"
+                    : consultation.status === "Cancelled"
+                    ? "Đã hủy"
+                    : consultation.status || "Không có"}
+                </Text>
               </Text>
             </InfoGroup>
             <InfoGroup title="Ghi chú">
@@ -122,19 +156,36 @@ export default function ConsultationDetailModal({
               borderTopWidth: 1,
               borderTopColor: "#eee",
               backgroundColor: "#fff",
+              flexDirection: "row",
+              gap: 12,
             }}
           >
             <TouchableOpacity
               style={{
-                backgroundColor: colors.primary,
+                flex: 1,
+                backgroundColor: "#f0f0f0",
                 borderRadius: 8,
                 padding: 14,
                 alignItems: "center",
               }}
               onPress={onClose}
             >
-              <Text style={{color: "#fff", fontWeight: "bold", fontSize: 16}}>
+              <Text style={{color: "#666", fontWeight: "bold", fontSize: 16}}>
                 Đóng
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                backgroundColor: colors.primary,
+                borderRadius: 8,
+                padding: 14,
+                alignItems: "center",
+              }}
+              onPress={onEdit}
+            >
+              <Text style={{color: "#fff", fontWeight: "bold", fontSize: 16}}>
+                Chỉnh sửa
               </Text>
             </TouchableOpacity>
           </View>

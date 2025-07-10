@@ -1,46 +1,126 @@
-import React from "react";
-import {View, Text, TouchableOpacity, Modal, ScrollView} from "react-native";
+import React, {useState} from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  Alert,
+} from "react-native";
 import FormPicker from "../../../components/common/FormPicker";
 import FormInput from "../../../components/common/FormInput";
 import DatePickerField from "../../../components/common/DatePickerField";
 import colors from "../../../styles/colors";
+import {formatVietnamesePhoneNumber} from "../../../utils/phoneUtils";
+import {formatDuration} from "../../../utils/timeUtils";
+import nurseAPI from "../../../services/nurseApi";
+import Icon from "react-native-vector-icons/MaterialIcons";
 
 function FieldCampaignPicker({value, onChange, campaigns, error}) {
+  // Ensure campaigns is an array and filter out any invalid entries
+  const validCampaigns = Array.isArray(campaigns)
+    ? campaigns.filter((c) => c && c._id)
+    : [];
+
   return (
     <FormPicker
-      label="Chiến dịch"
+      label="Kết quả chiến dịch"
       value={value}
       onValueChange={onChange}
-      options={campaigns.map((c) => ({
-        value: c._id,
-        label: c.name || c.title || c._id,
-      }))}
-      placeholder="Chọn chiến dịch..."
+      options={validCampaigns.map((c) => {
+        const campaignTitle = c.campaign?.title || "Chiến dịch";
+        const studentFirstName = c.student?.first_name || "";
+        const studentLastName = c.student?.last_name || "";
+        const studentName = `${studentFirstName} ${studentLastName}`.trim();
+
+        return {
+          value: c._id,
+          label: `${campaignTitle} - ${studentName}`,
+        };
+      })}
+      placeholder="Chọn kết quả chiến dịch..."
       required
       error={error}
     />
   );
 }
-function FieldStudentPicker({value, onChange, students, error}) {
+
+function FieldStudentInfo({campaignResult, campaigns}) {
+  if (!campaignResult) {
+    return (
+      <View style={{marginBottom: 15}}>
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "600",
+            color: colors.text,
+            marginBottom: 8,
+          }}
+        >
+          Học sinh
+        </Text>
+        <Text style={{color: "#999", fontSize: 16}}>
+          Vui lòng chọn kết quả chiến dịch
+        </Text>
+      </View>
+    );
+  }
+
+  const selectedCampaignResult = campaigns.find(
+    (c) => c._id === campaignResult
+  );
+  if (!selectedCampaignResult?.student) {
+    return (
+      <View style={{marginBottom: 15}}>
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "600",
+            color: colors.text,
+            marginBottom: 8,
+          }}
+        >
+          Học sinh
+        </Text>
+        <Text style={{color: "#999", fontSize: 16}}>
+          Không tìm thấy thông tin học sinh
+        </Text>
+      </View>
+    );
+  }
+
+  const student = selectedCampaignResult.student;
   return (
-    <FormPicker
-      label="Học sinh"
-      value={value}
-      onValueChange={onChange}
-      options={students.map((s) => ({
-        value: s._id,
-        label:
-          s.first_name +
-          " " +
-          s.last_name +
-          (s.class_name ? " - Lớp " + s.class_name : ""),
-      }))}
-      placeholder="Chọn học sinh..."
-      required
-      error={error}
-    />
+    <View style={{marginBottom: 15}}>
+      <Text
+        style={{
+          fontSize: 14,
+          fontWeight: "600",
+          color: colors.text,
+          marginBottom: 8,
+        }}
+      >
+        Học sinh
+      </Text>
+      <View
+        style={{
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 8,
+          paddingHorizontal: 12,
+          paddingVertical: 12,
+          backgroundColor: "#f9f9f9",
+        }}
+      >
+        <Text style={{color: colors.text, fontSize: 16}}>
+          {student.first_name} {student.last_name}
+          {student.class_name ? ` - Lớp ${student.class_name}` : ""}
+        </Text>
+      </View>
+    </View>
   );
 }
+
 function FieldParentPicker({value, onChange, parents, error, disabled}) {
   return (
     <FormPicker
@@ -53,7 +133,9 @@ function FieldParentPicker({value, onChange, parents, error, disabled}) {
           p.first_name +
           " " +
           p.last_name +
-          (p.phone_number ? " - " + p.phone_number : ""),
+          (p.phone_number
+            ? " - " + formatVietnamesePhoneNumber(p.phone_number)
+            : ""),
       }))}
       placeholder="Chọn phụ huynh..."
       required
@@ -72,6 +154,7 @@ function FieldDate({value, onChange, error, disabled}) {
         placeholder="Chọn ngày tư vấn..."
         disabled={disabled}
         dateRange="future"
+        backgroundColor="white"
       />
       {error && (
         <Text style={{color: "red", fontSize: 12}}>Vui lòng chọn ngày</Text>
@@ -81,13 +164,20 @@ function FieldDate({value, onChange, error, disabled}) {
 }
 function FieldDuration({value, onChange}) {
   return (
-    <FormInput
-      label="Thời lượng (phút)"
-      value={value}
-      onChangeText={onChange}
-      placeholder="30"
-      keyboardType="numeric"
-    />
+    <View style={{marginBottom: 15}}>
+      <FormInput
+        label="Thời lượng (phút)"
+        value={value}
+        onChangeText={onChange}
+        placeholder="30"
+        keyboardType="numeric"
+      />
+      {value && (
+        <Text style={{fontSize: 12, color: colors.textSecondary, marginTop: 4}}>
+          Tương đương: {formatDuration(parseInt(value) || 0)}
+        </Text>
+      )}
+    </View>
   );
 }
 function FieldReason({value, onChange, error}) {
@@ -123,9 +213,55 @@ export default function ConsultationCreateForm({
   creating,
   onClose,
   campaigns,
-  students,
   filteredParents,
 }) {
+  const [checkingOverlap, setCheckingOverlap] = useState(false);
+
+  const handleCheckOverlap = async () => {
+    if (!formData.scheduledDate) {
+      Alert.alert("Lỗi", "Vui lòng chọn ngày tư vấn trước khi kiểm tra");
+      return;
+    }
+
+    setCheckingOverlap(true);
+    try {
+      const result = await nurseAPI.checkConsultationOverlap(
+        formData.scheduledDate,
+        formData.duration
+      );
+
+      if (result.data?.hasOverlap) {
+        const conflict = result.data.conflictingConsultation;
+        const formatDate = (dateString) => {
+          const date = new Date(dateString);
+          return date.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          });
+        };
+
+        Alert.alert(
+          "Xung đột lịch",
+          `Thời gian này xung đột với lịch tư vấn khác:\n\nHọc sinh: ${
+            conflict.studentName
+          }\nNgày: ${formatDate(
+            conflict.scheduledDate
+          )}\nThời lượng: ${formatDuration(conflict.duration)}`,
+          [{text: "OK"}]
+        );
+      } else {
+        Alert.alert("Thông báo", "Thời gian này có thể sử dụng", [
+          {text: "OK"},
+        ]);
+      }
+    } catch (error) {
+      Alert.alert("Lỗi", error.message || "Không thể kiểm tra xung đột lịch");
+    } finally {
+      setCheckingOverlap(false);
+    }
+  };
+
   if (!visible) return null;
   return (
     <Modal
@@ -153,22 +289,40 @@ export default function ConsultationCreateForm({
             justifyContent: "flex-start",
           }}
         >
-          <Text
+          <View
             style={{
-              fontSize: 20,
-              fontWeight: "bold",
-              color: colors.primary,
-              marginBottom: 10,
-              textAlign: "center",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
               paddingTop: 20,
               paddingBottom: 12,
+              paddingHorizontal: 20,
               backgroundColor: "#fff",
               borderBottomWidth: 1,
               borderBottomColor: "#eee",
             }}
           >
-            Tạo lịch tư vấn mới
-          </Text>
+            <Text
+              style={{
+                fontSize: 20,
+                fontWeight: "bold",
+                color: colors.primary,
+                flex: 1,
+                textAlign: "center",
+              }}
+            >
+              Tạo lịch tư vấn mới
+            </Text>
+            <TouchableOpacity
+              onPress={onClose}
+              disabled={creating}
+              style={{
+                padding: 4,
+              }}
+            >
+              <Icon name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
           <ScrollView
             contentContainerStyle={{
               padding: 20,
@@ -183,11 +337,9 @@ export default function ConsultationCreateForm({
               campaigns={campaigns}
               error={!formData.campaignResult}
             />
-            <FieldStudentPicker
-              value={formData.student}
-              onChange={(v) => setFormData((f) => ({...f, student: v}))}
-              students={students}
-              error={!formData.student}
+            <FieldStudentInfo
+              campaignResult={formData.campaignResult}
+              campaigns={campaigns}
             />
             <FieldParentPicker
               value={formData.attending_parent}
@@ -235,6 +387,7 @@ export default function ConsultationCreateForm({
                 borderRadius: 8,
                 padding: 12,
                 alignItems: "center",
+                opacity: creating ? 0.6 : 1,
               }}
               onPress={onSave}
               disabled={creating}
@@ -246,15 +399,18 @@ export default function ConsultationCreateForm({
             <TouchableOpacity
               style={{
                 flex: 1,
-                backgroundColor: "#ccc",
+                backgroundColor: "#FF9500",
                 borderRadius: 8,
                 padding: 12,
                 alignItems: "center",
+                opacity: checkingOverlap || creating ? 0.6 : 1,
               }}
-              onPress={onClose}
-              disabled={creating}
+              onPress={handleCheckOverlap}
+              disabled={checkingOverlap || creating}
             >
-              <Text style={{color: "#333", fontWeight: "bold"}}>Đóng</Text>
+              <Text style={{color: "#fff", fontWeight: "bold"}}>
+                {checkingOverlap ? "Đang kiểm tra..." : "Kiểm tra xung đột"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
