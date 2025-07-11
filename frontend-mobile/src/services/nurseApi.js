@@ -168,6 +168,33 @@ export const nurseAPI = {
     }
   },
 
+  updateVaccinationCampaign: async (campaignId, campaignData) => {
+  try {
+    const response = await api.put(`/nurse/campaigns/${campaignId}`, campaignData);
+    return response.data;
+  } catch (error) {
+    console.error("Update vaccination campaign error:", error);
+    throw error.response?.data || { message: "Network error" };
+  }
+},
+
+recordVaccination: async (campaignId, recordData) => {
+    try {
+      console.log("API Request: POST /nurse/vaccination-campaigns/:campaignId/record", {
+        campaignId,
+        recordData,
+      });
+      const response = await api.post(
+        `/nurse/vaccination-campaigns/${campaignId}/record`,
+        recordData
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Record vaccination error:", error);
+      throw error.response?.data || { message: "Network error" };
+    }
+  },
+
   getVaccinationResults: async (campaignId) => {
     try {
       const response = await api.get(
@@ -193,6 +220,46 @@ export const nurseAPI = {
       throw error.response?.data || {message: "Network error"};
     }
   },
+
+  getVaccinationList: async (campaignId) => {
+    try {
+      const response = await api.get(
+        `/nurse/vaccination-campaigns/${campaignId}/list`,
+        {headers: {"Cache-Control": "no-cache"}}
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Get vaccination list error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+  getMedicalStaff: async () => {
+    try {
+      const response = await api.get("/nurse/medical-staff", {
+        headers: {"Cache-Control": "no-cache"},
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Get medical staff error:", error);
+      throw error.response?.data || {message: "Network error"};
+    }
+  },
+
+updateVaccinationFollowUp: async (resultId, data) => {
+  try {
+    // Kiểm tra dữ liệu đầu vào
+    if (!resultId || !data || !data.student_id || !data.vaccination_id) {
+      throw new Error("Missing required fields: resultId, student_id, or vaccination_id");
+    }
+    
+    const response = await api.put(`/nurse/vaccination-results/${resultId}/follow-up`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Update vaccination follow-up error:", error);
+    throw error.response?.data || { message: error.message || "Network error" };
+  }
+},
 
   // Health Check Campaigns
   getHealthCheckCampaigns: async () => {
