@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,10 @@ import {
   RefreshControl,
   Modal,
   ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../styles/colors';
-import { parentsAPI } from '../../services/parentsAPI';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../styles/colors";
+import { parentsAPI } from "../../services/parentsAPI";
 
 const ParentConsultations = () => {
   const [loading, setLoading] = useState(true);
@@ -29,10 +29,10 @@ const ParentConsultations = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       const [consultationsResponse, studentsResponse] = await Promise.all([
         parentsAPI.getConsultationSchedules(),
-        parentsAPI.getStudents()
+        parentsAPI.getStudents(),
       ]);
 
       if (consultationsResponse.success && consultationsResponse.data) {
@@ -44,8 +44,8 @@ const ParentConsultations = () => {
         setStudents(studentData);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert('Lỗi', 'Có lỗi xảy ra khi tải dữ liệu');
+      console.error("Error loading data:", error);
+      Alert.alert("Lỗi", "Có lỗi xảy ra khi tải dữ liệu");
     } finally {
       setLoading(false);
     }
@@ -60,97 +60,98 @@ const ParentConsultations = () => {
   const getStatusColor = (status) => {
     const normalizedStatus = status.toLowerCase();
     const colors = {
-      requested: '#f39c12',
-      scheduled: '#3498db',
-      completed: '#27ae60',
-      cancelled: '#e74c3c',
-      rescheduled: '#9b59b6'
+      requested: "#f39c12",
+      scheduled: "#3498db",
+      completed: "#27ae60",
+      cancelled: "#e74c3c",
+      rescheduled: "#9b59b6",
     };
-    return colors[normalizedStatus] || '#95a5a6';
+    return colors[normalizedStatus] || "#95a5a6";
   };
 
   const getStatusText = (status) => {
     const normalizedStatus = status.toLowerCase();
     const statusText = {
-      requested: 'Chờ xác nhận',
-      scheduled: 'Đã lên lịch',
-      completed: 'Hoàn thành',
-      cancelled: 'Đã hủy',
-      rescheduled: 'Đã dời lịch'
+      requested: "Chờ xác nhận",
+      scheduled: "Đã lên lịch",
+      completed: "Hoàn thành",
+      cancelled: "Đã hủy",
+      rescheduled: "Đã dời lịch",
     };
     return statusText[normalizedStatus] || status;
   };
 
   const getConsultationTypeIcon = (type) => {
     const icons = {
-      in_person: 'person',
-      phone: 'call',
-      video: 'videocam'
+      in_person: "person",
+      phone: "call",
+      video: "videocam",
     };
-    return icons[type] || 'person';
+    return icons[type] || "person";
   };
 
   const getConsultationTypeText = (type) => {
     const typeText = {
-      in_person: 'Tại chỗ',
-      phone: 'Điện thoại',
-      video: 'Video call'
+      in_person: "Trực tiếp",
+      phone: "Điện thoại",
+      video: "Video call",
     };
-    return typeText[type] || 'Tại chỗ';
+    return typeText[type] || "Trực tiếp";
   };
 
   const getStudentName = (consultation) => {
     if (consultation.student) {
       return `${consultation.student.first_name} ${consultation.student.last_name}`;
     }
-    const student = students.find(s => s._id === consultation.student_id);
-    return student ? `${student.first_name} ${student.last_name}` : 'N/A';
+    const student = students.find((s) => s._id === consultation.student_id);
+    return student ? `${student.first_name} ${student.last_name}` : "N/A";
   };
 
   const getMedicalStaffName = (consultation) => {
     if (consultation.medicalStaff) {
       return `${consultation.medicalStaff.first_name} ${consultation.medicalStaff.last_name}`;
     }
-    return 'Chưa phân công';
+    return "Chưa phân công";
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Chưa có thông tin';
+    if (!dateString) return "Chưa có thông tin";
     const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN');
+    return date.toLocaleDateString("vi-VN");
   };
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return 'Chưa có thông tin';
+    if (!dateString) return "Chưa có thông tin";
     const date = new Date(dateString);
-    return `${date.toLocaleDateString('vi-VN')} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+    return `${date.toLocaleDateString("vi-VN")} ${date.toLocaleTimeString(
+      "vi-VN",
+      { hour: "2-digit", minute: "2-digit" }
+    )}`;
   };
 
   const handleCancelConsultation = (consultation) => {
-    Alert.alert(
-      'Xác nhận hủy',
-      'Bạn có chắc chắn muốn hủy lịch tư vấn này?',
-      [
-        { text: 'Không', style: 'cancel' },
-        {
-          text: 'Hủy lịch',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await parentsAPI.cancelConsultationRequest(consultation._id);
-              if (response.success) {
-                Alert.alert('Thành công', 'Hủy lịch tư vấn thành công');
-                loadData();
-              } else {
-                Alert.alert('Lỗi', response.message || 'Có lỗi xảy ra');
-              }
-            } catch (error) {
-              Alert.alert('Lỗi', 'Có lỗi xảy ra khi hủy lịch');
+    Alert.alert("Xác nhận hủy", "Bạn có chắc chắn muốn hủy lịch tư vấn này?", [
+      { text: "Không", style: "cancel" },
+      {
+        text: "Hủy lịch",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            const response = await parentsAPI.cancelConsultationRequest(
+              consultation._id
+            );
+            if (response.success) {
+              Alert.alert("Thành công", "Hủy lịch tư vấn thành công");
+              loadData();
+            } else {
+              Alert.alert("Lỗi", response.message || "Có lỗi xảy ra");
             }
+          } catch (error) {
+            Alert.alert("Lỗi", "Có lỗi xảy ra khi hủy lịch");
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   const renderConsultationItem = ({ item }) => (
@@ -169,14 +170,19 @@ const ParentConsultations = () => {
           </Text>
         </View>
         <View style={styles.consultationBadges}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+          <View
+            style={[
+              styles.statusBadge,
+              { backgroundColor: getStatusColor(item.status) },
+            ]}
+          >
             <Text style={styles.badgeText}>{getStatusText(item.status)}</Text>
           </View>
           <View style={styles.typeBadge}>
-            <Ionicons 
-              name={getConsultationTypeIcon(item.consultation_type)} 
-              size={16} 
-              color={colors.primary} 
+            <Ionicons
+              name={getConsultationTypeIcon(item.consultation_type)}
+              size={16}
+              color={colors.primary}
             />
             <Text style={styles.typeText}>
               {getConsultationTypeText(item.consultation_type)}
@@ -197,7 +203,7 @@ const ParentConsultations = () => {
           <Text style={styles.actionButtonText}>Xem</Text>
         </TouchableOpacity>
 
-        {(item.status === 'requested' || item.status === 'scheduled') && (
+        {(item.status === "requested" || item.status === "scheduled") && (
           <TouchableOpacity
             style={[styles.actionButton, styles.cancelButton]}
             onPress={() => handleCancelConsultation(item)}
@@ -216,12 +222,18 @@ const ParentConsultations = () => {
         data={consultations}
         renderItem={renderConsultationItem}
         keyExtractor={(item) => item._id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-outline" size={64} color={colors.lightGray} />
+            <Ionicons
+              name="calendar-outline"
+              size={64}
+              color={colors.lightGray}
+            />
             <Text style={styles.emptyText}>Chưa có lịch tư vấn nào</Text>
             <Text style={styles.emptySubtext}>
               Các lịch tư vấn sẽ hiển thị tại đây
@@ -253,81 +265,117 @@ const ParentConsultations = () => {
               <ScrollView style={styles.modalBody}>
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Lý do tư vấn</Text>
-                  <Text style={styles.detailValue}>{selectedConsultation.reason}</Text>
+                  <Text style={styles.detailValue}>
+                    {selectedConsultation.reason}
+                  </Text>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Học sinh</Text>
-                  <Text style={styles.detailValue}>{getStudentName(selectedConsultation)}</Text>
+                  <Text style={styles.detailValue}>
+                    {getStudentName(selectedConsultation)}
+                  </Text>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Nhân viên y tế</Text>
-                  <Text style={styles.detailValue}>{getMedicalStaffName(selectedConsultation)}</Text>
+                  <Text style={styles.detailValue}>
+                    {getMedicalStaffName(selectedConsultation)}
+                  </Text>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Ngày hẹn</Text>
                   <Text style={styles.detailValue}>
-                    {formatDate(selectedConsultation.appointment_date || selectedConsultation.scheduledDate)}
+                    {formatDate(
+                      selectedConsultation.appointment_date ||
+                        selectedConsultation.scheduledDate
+                    )}
                   </Text>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Hình thức tư vấn</Text>
                   <View style={styles.typeRow}>
-                    <Ionicons 
-                      name={getConsultationTypeIcon(selectedConsultation.consultation_type)} 
-                      size={20} 
-                      color={colors.primary} 
+                    <Ionicons
+                      name={getConsultationTypeIcon(
+                        selectedConsultation.consultation_type
+                      )}
+                      size={20}
+                      color={colors.primary}
                     />
                     <Text style={styles.detailValue}>
-                      {getConsultationTypeText(selectedConsultation.consultation_type)}
+                      {getConsultationTypeText(
+                        selectedConsultation.consultation_type
+                      )}
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Trạng thái</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedConsultation.status) }]}>
-                    <Text style={styles.badgeText}>{getStatusText(selectedConsultation.status)}</Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor: getStatusColor(
+                          selectedConsultation.status
+                        ),
+                      },
+                    ]}
+                  >
+                    <Text style={styles.badgeText}>
+                      {getStatusText(selectedConsultation.status)}
+                    </Text>
                   </View>
                 </View>
 
                 {selectedConsultation.duration && (
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Thời gian dự kiến</Text>
-                    <Text style={styles.detailValue}>{selectedConsultation.duration} phút</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedConsultation.duration} phút
+                    </Text>
                   </View>
                 )}
 
                 {selectedConsultation.notes && (
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Ghi chú</Text>
-                    <Text style={styles.detailValue}>{selectedConsultation.notes}</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedConsultation.notes}
+                    </Text>
                   </View>
                 )}
 
                 {selectedConsultation.doctor_notes && (
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Ghi chú của bác sĩ</Text>
-                    <Text style={styles.detailValue}>{selectedConsultation.doctor_notes}</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedConsultation.doctor_notes}
+                    </Text>
                   </View>
                 )}
 
                 <View style={styles.detailSection}>
                   <Text style={styles.detailLabel}>Ngày tạo</Text>
-                  <Text style={styles.detailValue}>{formatDate(selectedConsultation.createdAt)}</Text>
+                  <Text style={styles.detailValue}>
+                    {formatDate(selectedConsultation.createdAt)}
+                  </Text>
                 </View>
 
                 {selectedConsultation.follow_up_required && (
                   <View style={styles.detailSection}>
                     <Text style={styles.detailLabel}>Cần tái khám</Text>
                     <Text style={styles.detailValue}>
-                      Có {selectedConsultation.follow_up_date && `- ${formatDate(selectedConsultation.follow_up_date)}`}
+                      Có{" "}
+                      {selectedConsultation.follow_up_date &&
+                        `- ${formatDate(selectedConsultation.follow_up_date)}`}
                     </Text>
                     {selectedConsultation.follow_up_notes && (
-                      <Text style={styles.detailValue}>{selectedConsultation.follow_up_notes}</Text>
+                      <Text style={styles.detailValue}>
+                        {selectedConsultation.follow_up_notes}
+                      </Text>
                     )}
                   </View>
                 )}
@@ -349,19 +397,19 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   consultationCard: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 15,
     marginBottom: 15,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   consultationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 15,
   },
   consultationInfo: {
@@ -370,7 +418,7 @@ const styles = StyleSheet.create({
   },
   consultationReason: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.text,
     marginBottom: 5,
   },
@@ -389,7 +437,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   consultationBadges: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -398,13 +446,13 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   badgeText: {
-    color: 'white',
+    color: "white",
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.lightGray,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -416,12 +464,12 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   consultationActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 15,
@@ -434,20 +482,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error,
   },
   actionButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 4,
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 50,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.textSecondary,
     marginTop: 15,
     marginBottom: 8,
@@ -455,40 +503,40 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 40,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
-    width: '90%',
-    height: '85%',
+    width: "90%",
+    height: "85%",
   },
   detailModalContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderRadius: 12,
-    width: '90%',
-    height: '90%',
+    width: "90%",
+    height: "90%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.text,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 15,
   },
   closeButton: {
@@ -503,7 +551,7 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.textSecondary,
     marginBottom: 5,
   },
@@ -513,8 +561,8 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   typeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
 });
 

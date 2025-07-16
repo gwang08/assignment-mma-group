@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../styles/colors";
@@ -28,6 +29,13 @@ const ParentDashboard = ({ navigation }) => {
   const [isStudentPickerVisible, setIsStudentPickerVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
+
+  // Consultation modal states
+  const [
+    isConsultationDetailModalVisible,
+    setIsConsultationDetailModalVisible,
+  ] = useState(false);
+  const [selectedConsultation, setSelectedConsultation] = useState(null);
 
   // Medicine request form states
   const [editingRequest, setEditingRequest] = useState(null);
@@ -111,13 +119,16 @@ const ParentDashboard = ({ navigation }) => {
 
   // Helper function to get status color for consultations (not medicine requests)
   const getConsultationStatusColor = (status) => {
-    const colors = {
+    const normalizedStatus = status.toLowerCase();
+    const statusColors = {
       pending: "#f39c12",
-      scheduled: "#9b59b6",
-      completed: "#3498db",
-      cancelled: "#95a5a6",
+      requested: "#f39c12",
+      scheduled: "#3498db",
+      completed: "#27ae60",
+      cancelled: "#e74c3c",
+      rescheduled: "#9b59b6",
     };
-    return colors[status] || "#95a5a6";
+    return statusColors[normalizedStatus] || "#95a5a6";
   };
 
   // Helper function to get student name from medicine request
@@ -194,6 +205,58 @@ const ParentDashboard = ({ navigation }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("vi-VN");
+  };
+
+  // Consultation helper functions
+  const getConsultationStudentName = (consultation) => {
+    if (consultation.student) {
+      return `${consultation.student.first_name} ${consultation.student.last_name}`;
+    }
+    const student = students.find((s) => s._id === consultation.student_id);
+    return student ? `${student.first_name} ${student.last_name}` : "N/A";
+  };
+
+  const getMedicalStaffName = (consultation) => {
+    if (consultation.medicalStaff) {
+      return `${consultation.medicalStaff.first_name} ${consultation.medicalStaff.last_name}`;
+    }
+    return "Chưa phân công";
+  };
+
+  const getConsultationStatusText = (status) => {
+    const normalizedStatus = status.toLowerCase();
+    const statusText = {
+      requested: "Chờ xác nhận",
+      pending: "Chờ xác nhận",
+      scheduled: "Đã lên lịch",
+      completed: "Hoàn thành",
+      cancelled: "Đã hủy",
+      rescheduled: "Đã dời lịch",
+    };
+    return statusText[normalizedStatus] || status;
+  };
+
+  const getConsultationTypeIcon = (type) => {
+    const icons = {
+      in_person: "person",
+      phone: "call",
+      video: "videocam",
+    };
+    return icons[type] || "person";
+  };
+
+  const getConsultationTypeText = (type) => {
+    const typeText = {
+      in_person: "Trực tiếp",
+      phone: "Điện thoại",
+      video: "Video call",
+    };
+    return typeText[type] || "Trực tiếp";
+  };
+
+  const handleConsultationPress = (consultation) => {
+    setSelectedConsultation(consultation);
+    setIsConsultationDetailModalVisible(true);
   };
 
   // Medicine request modal helper functions
@@ -703,7 +766,12 @@ const ParentDashboard = ({ navigation }) => {
           </TouchableOpacity>
         </View>
         {consultations.slice(0, 3).map((consultation, index) => (
-          <View key={index} style={styles.listItem}>
+          <TouchableOpacity
+            key={index}
+            style={styles.listItem}
+            onPress={() => handleConsultationPress(consultation)}
+            activeOpacity={0.7}
+          >
             <View style={styles.listItemContent}>
               <Text style={styles.listItemTitle}>{consultation.reason}</Text>
               <Text style={styles.listItemSubtext}>
@@ -723,19 +791,10 @@ const ParentDashboard = ({ navigation }) => {
               ]}
             >
               <Text style={styles.statusText}>
-                {consultation.status === "scheduled" ||
-                consultation.status === "SCHEDULED"
-                  ? "Đã lên lịch"
-                  : consultation.status === "completed" ||
-                    consultation.status === "COMPLETED"
-                  ? "Hoàn thành"
-                  : consultation.status === "cancelled" ||
-                    consultation.status === "CANCELLED"
-                  ? "Đã hủy"
-                  : "Chờ xác nhận"}
+                {getConsultationStatusText(consultation.status)}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
         {consultations.length === 0 && (
           <Text style={styles.emptyText}>Chưa có lịch tư vấn nào</Text>
@@ -823,6 +882,149 @@ const ParentDashboard = ({ navigation }) => {
         handleCreateRequest={handleCreateRequest}
         handleUpdateRequest={handleUpdateRequest}
       />
+
+      {/* Consultation Detail Modal */}
+      <Modal
+        visible={isConsultationDetailModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsConsultationDetailModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.detailModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Chi tiết lịch tư vấn</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setIsConsultationDetailModalVisible(false)}
+              >
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {selectedConsultation && (
+              <ScrollView style={styles.modalBody}>
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Lý do tư vấn</Text>
+                  <Text style={styles.detailValue}>
+                    {selectedConsultation.reason}
+                  </Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Học sinh</Text>
+                  <Text style={styles.detailValue}>
+                    {getConsultationStudentName(selectedConsultation)}
+                  </Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Nhân viên y tế</Text>
+                  <Text style={styles.detailValue}>
+                    {getMedicalStaffName(selectedConsultation)}
+                  </Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Ngày hẹn</Text>
+                  <Text style={styles.detailValue}>
+                    {formatDate(
+                      selectedConsultation.appointment_date ||
+                        selectedConsultation.scheduledDate
+                    )}
+                  </Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Hình thức tư vấn</Text>
+                  <View style={styles.typeRow}>
+                    <Ionicons
+                      name={getConsultationTypeIcon(
+                        selectedConsultation.consultation_type
+                      )}
+                      size={20}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.detailValue}>
+                      {getConsultationTypeText(
+                        selectedConsultation.consultation_type
+                      )}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Trạng thái</Text>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor: getConsultationStatusColor(
+                          selectedConsultation.status
+                        ),
+                      },
+                    ]}
+                  >
+                    <Text style={styles.badgeText}>
+                      {getConsultationStatusText(selectedConsultation.status)}
+                    </Text>
+                  </View>
+                </View>
+
+                {selectedConsultation.duration && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Thời gian dự kiến</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedConsultation.duration} phút
+                    </Text>
+                  </View>
+                )}
+
+                {selectedConsultation.notes && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Ghi chú</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedConsultation.notes}
+                    </Text>
+                  </View>
+                )}
+
+                {selectedConsultation.doctor_notes && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Ghi chú của bác sĩ</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedConsultation.doctor_notes}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailLabel}>Ngày tạo</Text>
+                  <Text style={styles.detailValue}>
+                    {formatDate(selectedConsultation.createdAt)}
+                  </Text>
+                </View>
+
+                {selectedConsultation.follow_up_required && (
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailLabel}>Cần tái khám</Text>
+                    <Text style={styles.detailValue}>
+                      Có{" "}
+                      {selectedConsultation.follow_up_date &&
+                        `- ${formatDate(selectedConsultation.follow_up_date)}`}
+                    </Text>
+                    {selectedConsultation.follow_up_notes && (
+                      <Text style={styles.detailValue}>
+                        {selectedConsultation.follow_up_notes}
+                      </Text>
+                    )}
+                  </View>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -991,6 +1193,63 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     marginBottom: 2,
+  },
+
+  // Consultation Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  detailModalContent: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    width: "90%",
+    height: "90%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.text,
+  },
+  closeButton: {
+    padding: 5,
+  },
+  modalBody: {
+    flex: 1,
+    padding: 20,
+  },
+  detailSection: {
+    marginBottom: 15,
+  },
+  detailLabel: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: colors.textSecondary,
+    marginBottom: 5,
+  },
+  detailValue: {
+    fontSize: 16,
+    color: colors.text,
+    marginLeft: 5,
+  },
+  typeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  badgeText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
   },
 });
 

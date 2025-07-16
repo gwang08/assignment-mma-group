@@ -57,8 +57,8 @@ export const authAPI = {
   // Đăng nhập - chỉ cần username và password
   login: async (username, password) => {
     try {
-      const loginData = {username, password};
-      console.log("Attempting login with:", {...loginData, password: "***"});
+      const loginData = { username, password };
+      console.log("Attempting login with:", { ...loginData, password: "***" });
       const response = await api.post("/auth/login", loginData);
       console.log("Login successful:", response.data);
       return response.data;
@@ -73,7 +73,7 @@ export const authAPI = {
           timeout: error.config?.timeout,
         },
       });
-      throw error.response?.data || {message: "Network error"};
+      throw error.response?.data || { message: "Network error" };
     }
   },
 
@@ -112,7 +112,7 @@ export const authAPI = {
         status: error.response?.status,
         data: error.response?.data,
       });
-      throw error.response?.data || {message: "Network error"};
+      throw error.response?.data || { message: "Network error" };
     }
   },
 
@@ -140,7 +140,7 @@ export const authAPI = {
         status: error.response?.status,
         data: error.response?.data,
       });
-      throw error.response?.data || {message: "Network error"};
+      throw error.response?.data || { message: "Network error" };
     }
   },
 };
@@ -172,7 +172,7 @@ export const storageAPI = {
       };
     } catch (error) {
       console.error("Error getting user data:", error);
-      return {token: null, userData: null, userType: null};
+      return { token: null, userData: null, userType: null };
     }
   },
 
