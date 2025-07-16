@@ -159,8 +159,8 @@ export const parentsAPI = {
   // Campaign Consent
   submitCampaignConsent: async (campaignId, studentId, consentData) => {
     try {
-      const response = await api.post(
-        `/parent/campaigns/${campaignId}/students/${studentId}/consent`,
+      const response = await api.put(
+        `/parent/students/${studentId}/campaigns/${campaignId}/consent`,
         consentData
       );
       return response.data;
@@ -179,6 +179,19 @@ export const parentsAPI = {
       return response.data;
     } catch (error) {
       console.error("Update campaign consent error:", error);
+      throw error.response?.data || { message: "Network error" };
+    }
+  },
+
+  // Campaign Results
+  getCampaignResults: async (studentId) => {
+    try {
+      const response = await api.get(
+        `/parent/students/${studentId}/campaign-results`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Get campaign results error:", error);
       throw error.response?.data || { message: "Network error" };
     }
   },
