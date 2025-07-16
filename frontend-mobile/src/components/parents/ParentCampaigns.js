@@ -211,7 +211,6 @@ const ParentCampaigns = () => {
     setIsDetailModalVisible(true);
   };
 
-
   const handleSubmitConsent = async (campaign, studentId, consentGiven) => {
     // Show confirmation dialog for declining consent
     if (!consentGiven) {
@@ -236,36 +235,42 @@ const ParentCampaigns = () => {
   };
 
   const submitConsent = async (campaign, studentId, consentGiven) => {
-
     try {
       setSubmittingConsent(true);
-      const consentData = {
 
+      const consentData = {
         status: consentGiven ? "Approved" : "Declined",
         notes: consentGiven ? "Đồng ý tham gia" : "Không đồng ý tham gia",
-
       };
 
-      const response = await parentsAPI.submitCampaignConsent(
+      const result = await parentsAPI.submitCampaignConsent(
         campaign._id,
         studentId,
         consentData
       );
-      if (response.success) {
+
+      if (result?.success) {
+        const consentedStudent = result?.data?.student;
+
+        if (!consentedStudent) {
+          console.warn(
+            "❗ Không tìm thấy thông tin student trong kết quả consent."
+          );
+        }
+
         Alert.alert(
           "Thành công",
-          `Đã ${
-            status === CAMPAIGN_CONSENT_STATUS.APPROVED ? "đồng ý" : "từ chối"
-          } tham gia chiến dịch`
+          `Đã ${consentGiven ? "đồng ý" : "từ chối"} tham gia chiến dịch`
         );
+
         loadData();
       } else {
-        Alert.alert("Lỗi", response.message || "Có lỗi xảy ra");
+        Alert.alert("Lỗi", result?.message || "Có lỗi xảy ra");
       }
     } catch (error) {
-  console.log("Submit consent error:", error.response?.data || error.message);
-  Alert.alert("Lỗi", error.response?.data?.message || "Có lỗi xảy ra khi gửi phản hồi");
-} finally {
+      console.log("Submit consent error:", error);
+      Alert.alert("Lỗi", error?.message || "Có lỗi xảy ra khi gửi phản hồi");
+    } finally {
       setSubmittingConsent(false);
     }
   };
@@ -650,7 +655,6 @@ const ParentCampaigns = () => {
                 Yêu cầu xác nhận tham gia:
               </Text>
 
-
               {(item.students || [])
                 .filter(
                   (sc) =>
@@ -708,7 +712,6 @@ const ParentCampaigns = () => {
                     </View>
                   </View>
                 ))}
-
             </View>
           )}
 
