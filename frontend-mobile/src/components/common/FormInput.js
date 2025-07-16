@@ -1,6 +1,6 @@
 import React from "react";
 import {View, Text, TextInput, StyleSheet} from "react-native";
-import colors from "../../../styles/colors";
+import colors from "../../styles/colors";
 
 const FormInput = ({
   label,

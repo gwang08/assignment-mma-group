@@ -6,32 +6,47 @@ import {
   ScrollView,
   Alert,
   RefreshControl,
+  TouchableOpacity,
+  Modal,
+  TextInput,
 } from "react-native";
 import nurseAPI from "../../services/nurseApi";
 import colors from "../../styles/colors";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 // Import components
 import ScreenHeader from "./components/ScreenHeader";
 import LoadingScreen from "./components/LoadingScreen";
 import EmptyState from "./components/EmptyState";
-import ModalForm from "./components/ModalForm";
+import SearchAndFilterBar from "./components/SearchAndFilterBar";
 import MedicineRequestCard from "./components/MedicineRequestCard";
-import MedicineRequestForm from "./components/MedicineRequestForm";
+import MedicineRequestStats from "./components/MedicineRequestStats";
+import MedicineRequestList from "./components/MedicineRequestList";
+import MedicineRequestDetailModal from "./components/MedicineRequestDetailModal";
+import MedicineInventoryModal from "./components/MedicineInventoryModal";
+
+const REQUEST_STATUS = [
+  {label: "Tất cả", value: ""},
+  {label: "Chờ xử lý", value: "pending"},
+  {label: "Đã duyệt", value: "approved"},
+  {label: "Đã từ chối", value: "rejected"},
+  {label: "Hoàn thành", value: "completed"},
+];
 
 const MedicineRequestsScreen = ({navigation}) => {
   const [requests, setRequests] = useState([]);
-  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [filterValue, setFilterValue] = useState("");
+  const [selectedRequest, setSelectedRequest] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [formData, setFormData] = useState({
-    studentId: "",
-    medicine_name: "",
-    reason: "",
-    dosage: "",
-    frequency: "",
-    duration: "",
-  });
+  const [statusUpdate, setStatusUpdate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [updating, setUpdating] = useState(false);
+  const [inventoryModalVisible, setInventoryModalVisible] = useState(false);
+  const [inventory, setInventory] = useState([]);
+  const [loadingInventory, setLoadingInventory] = useState(false);
 
   const loadRequests = async () => {
     try {
@@ -46,18 +61,6 @@ const MedicineRequestsScreen = ({navigation}) => {
     }
   };
 
-  const loadStudents = async () => {
-    try {
-      const response = await nurseAPI.getStudents();
-      setStudents(response);
-      if (response.length > 0) {
-        setFormData((prev) => ({...prev, studentId: response[0]._id}));
-      }
-    } catch (error) {
-      console.error("Error loading students:", error);
-    }
-  };
-
   const onRefresh = async () => {
     setRefreshing(true);
     await loadRequests();
@@ -66,63 +69,58 @@ const MedicineRequestsScreen = ({navigation}) => {
 
   useEffect(() => {
     loadRequests();
-    loadStudents();
   }, []);
 
+  // Lọc requests theo search/filter
+  const filteredRequests = requests.filter((request) => {
+    const matchesSearch =
+      !searchValue ||
+      request.student.first_name
+        ?.toLowerCase()
+        .includes(searchValue.toLowerCase());
+    const matchesFilter = !filterValue || request.status === filterValue;
+    return matchesSearch && matchesFilter;
+  });
+
   const handleViewRequest = (request) => {
-    Alert.alert(
-      "Chi Tiết Yêu Cầu",
-      `Thuốc: ${request.medicine_name}\nLý do: ${request.reason}\nTrạng thái: ${request.status}\nHọc sinh: ${request.student?.first_name} ${request.student?.last_name}`,
-      [
-        {
-          text: "Từ chối",
-          style: "destructive",
-          onPress: () => handleRejectRequest(request),
-        },
-        {text: "Phê duyệt", onPress: () => handleApproveRequest(request)},
-        {text: "Đóng"},
-      ]
-    );
-  };
-
-  const handleApproveRequest = (request) => {
-    Alert.alert(
-      "Phê duyệt",
-      "Chức năng phê duyệt yêu cầu sẽ được phát triển sau."
-    );
-  };
-
-  const handleRejectRequest = (request) => {
-    Alert.alert("Từ chối", "Chức năng từ chối yêu cầu sẽ được phát triển sau.");
-  };
-
-  const handleCreateRequest = () => {
-    setFormData({
-      studentId: students.length > 0 ? students[0]._id : "",
-      medicine_name: "",
-      reason: "",
-      dosage: "",
-      frequency: "",
-      duration: "",
-    });
+    setSelectedRequest(request);
+    setStatusUpdate(request.status);
+    setNotes(request.notes || "");
     setModalVisible(true);
   };
 
-  const handleSaveRequest = async () => {
-    if (!formData.studentId || !formData.medicine_name || !formData.reason) {
-      Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc");
-      return;
-    }
-
+  const handleUpdateStatus = async () => {
+    if (!selectedRequest) return;
+    setUpdating(true);
     try {
-      Alert.alert(
-        "Thông Báo",
-        "Chức năng tạo yêu cầu thuốc cần backend API để hoạt động. Hiện tại chỉ có thể xem danh sách."
+      await nurseAPI.updateMedicineRequestStatus(
+        selectedRequest._id,
+        statusUpdate,
+        notes
       );
+      Alert.alert("Cập nhật trạng thái thành công.");
       setModalVisible(false);
+      setSelectedRequest(null);
+      setNotes("");
+      setStatusUpdate("");
+      loadRequests();
     } catch (error) {
-      console.error("Error creating request:", error);
-      Alert.alert("Lỗi", "Không thể tạo yêu cầu thuốc");
+      Alert.alert("Lỗi", "Không thể cập nhật trạng thái");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleOpenInventory = async () => {
+    setLoadingInventory(true);
+    setInventoryModalVisible(true);
+    try {
+      const data = await nurseAPI.getMedicineInventory();
+      setInventory(data);
+    } catch (e) {
+      setInventory([]);
+    } finally {
+      setLoadingInventory(false);
     }
   };
 
@@ -131,75 +129,68 @@ const MedicineRequestsScreen = ({navigation}) => {
   }
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title="Quản Lý Yêu Cầu Thuốc"
-        onBack={() => navigation.goBack()}
-        onAdd={handleCreateRequest}
-        backgroundColor="#4ECDC4"
-      />
-
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{requests.length}</Text>
-            <Text style={styles.statLabel}>Tổng Yêu Cầu</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {requests.filter((r) => r.status === "Pending").length}
-            </Text>
-            <Text style={styles.statLabel}>Chờ Xử Lý</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>
-              {requests.filter((r) => r.status === "Approved").length}
-            </Text>
-            <Text style={styles.statLabel}>Đã Phê Duyệt</Text>
-          </View>
-        </View>
-
-        <View style={styles.requestsContainer}>
-          {requests.length === 0 ? (
-            <EmptyState message="Không có yêu cầu thuốc nào" />
-          ) : (
-            requests.map((request, index) => (
-              <MedicineRequestCard
-                key={request._id || index}
-                request={request}
-                onPress={handleViewRequest}
-              />
-            ))
-          )}
-        </View>
-      </ScrollView>
-
-      <ModalForm
-        visible={modalVisible}
-        title="Tạo Yêu Cầu Thuốc"
-        onClose={() => setModalVisible(false)}
-        onSave={handleSaveRequest}
-        saveButtonText="Tạo Yêu Cầu"
-        disabled={
-          !formData.studentId || !formData.medicine_name || !formData.reason
-        }
-      >
-        <MedicineRequestForm
-          formData={formData}
-          setFormData={setFormData}
-          students={students}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <ScreenHeader
+          title="Quản Lý Yêu Cầu Thuốc"
+          onBack={() => navigation.goBack()}
+          backgroundColor="#4ECDC4"
         />
-      </ModalForm>
-    </View>
+        <ScrollView
+          style={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <MedicineRequestStats requests={requests} />
+          <SearchAndFilterBar
+            searchValue={searchValue}
+            onSearchChange={setSearchValue}
+            filterValue={filterValue}
+            onFilterChange={setFilterValue}
+            filterOptions={REQUEST_STATUS}
+            filterLabel="Trạng thái"
+            searchLabel="Tìm theo tên học sinh:"
+          />
+          <MedicineRequestList
+            requests={filteredRequests}
+            onViewRequest={handleViewRequest}
+          />
+        </ScrollView>
+        <MedicineRequestDetailModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          selectedRequest={selectedRequest}
+          onUpdateStatus={handleUpdateStatus}
+          statusUpdate={statusUpdate}
+          setStatusUpdate={setStatusUpdate}
+          notes={notes}
+          setNotes={setNotes}
+          updating={updating}
+          REQUEST_STATUS={REQUEST_STATUS}
+        />
+        <MedicineInventoryModal
+          visible={inventoryModalVisible}
+          onClose={() => setInventoryModalVisible(false)}
+          inventory={inventory}
+          loadingInventory={loadingInventory}
+        />
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={handleOpenInventory}
+        >
+          <Text style={styles.createButtonText}>💊</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -241,6 +232,30 @@ const styles = StyleSheet.create({
   requestsContainer: {
     padding: 20,
     gap: 15,
+  },
+  createButton: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: colors.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  createButtonText: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
   },
 });
 

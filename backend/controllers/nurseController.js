@@ -6,13 +6,17 @@ const Campaign = require("../models/campaign/campaign");
 const CampaignResult = require("../models/campaign/campaignResult");
 const CampaignConsent = require("../models/campaign/campaignConsent");
 const ConsultationSchedule = require("../models/campaign/consultationSchedule");
-const { CAMPAIGN_TYPE, CAMPAIGN_CONSENT_STATUS } = require("../utils/enums");
+const {
+  CAMPAIGN_TYPE,
+  CAMPAIGN_CONSENT_STATUS,
+  CONSULTATION_STATUS,
+} = require("../utils/enums");
 const StudentParent = require("../models/user/studentParent");
 
 // Helper function to validate a student ID
 const validateStudentRole = async (studentId) => {
   if (!studentId) return null;
-  return await User.findOne({ _id: studentId, role: "student" });
+  return await User.findOne({_id: studentId, role: "student"});
 };
 
 class NurseController {
@@ -21,12 +25,12 @@ class NurseController {
     try {
       // Return dashboard data as JSON instead of rendering a view
       const recentEvents = await MedicalEvent.find()
-        .sort({ createdAt: -1 })
+        .sort({createdAt: -1})
         .limit(5)
         .populate("student", "first_name last_name class_name");
 
       const recentRequests = await MedicineRequest.find()
-        .sort({ createdAt: -1 })
+        .sort({createdAt: -1})
         .limit(5)
         .populate("student", "first_name last_name class_name");
 
@@ -37,7 +41,7 @@ class NurseController {
           recentEvents,
           recentRequests,
           dashboardStats: {
-            activeEvents: await MedicalEvent.countDocuments({ status: "Open" }),
+            activeEvents: await MedicalEvent.countDocuments({status: "Open"}),
             pendingRequests: await MedicineRequest.countDocuments({
               status: "Pending",
             }),
@@ -55,7 +59,7 @@ class NurseController {
       const events = await MedicalEvent.find()
         .populate("student", "first_name last_name class_name")
         .populate("created_by", "first_name last_name role")
-        .sort({ createdAt: -1 })
+        .sort({createdAt: -1})
         .limit(50);
 
       // ✅ Trả về với success + data
@@ -64,14 +68,12 @@ class NurseController {
         data: events.map((event) => ({
           ...event.toObject(),
           _id: event._id.toString(),
-          student: event.student?._id?.toString() || null,
-          created_by: event.created_by?._id?.toString() || null,
         })),
       });
     } catch (error) {
       res
         .status(500)
-        .json({ success: false, error: "Failed to fetch medical events" });
+        .json({success: false, error: "Failed to fetch medical events"});
     }
   }
 
@@ -86,13 +88,13 @@ class NurseController {
         symptoms = [],
         treatment_notes = "",
         medications_administered = [],
-        parent_notified = { status: false },
+        parent_notified = {status: false},
         follow_up_required = true,
         follow_up_notes = "",
       } = req.body;
 
       // Validate that studentId corresponds to a user with student role
-      const student = await User.findOne({ _id: studentId, role: "student" });
+      const student = await User.findOne({_id: studentId, role: "student"});
       if (!student) {
         return res.status(404).json({
           error: "Student not found or invalid student ID",
@@ -138,13 +140,13 @@ class NurseController {
         );
 
       if (!medicalEvent) {
-        return res.status(404).json({ error: "Medical event not found" });
+        return res.status(404).json({error: "Medical event not found"});
       }
 
       res.json(medicalEvent);
     } catch (error) {
       console.error("Error fetching medical event:", error);
-      res.status(500).json({ error: "Failed to fetch medical event" });
+      res.status(500).json({error: "Failed to fetch medical event"});
     }
   }
 
@@ -154,7 +156,7 @@ class NurseController {
       // First find the event to verify student's role before update
       const existingEvent = await MedicalEvent.findById(req.params.eventId);
       if (!existingEvent) {
-        return res.status(404).json({ error: "Medical event not found" });
+        return res.status(404).json({error: "Medical event not found"});
       }
 
       // Verify the student role
@@ -194,7 +196,7 @@ class NurseController {
       const medicalEvent = await MedicalEvent.findByIdAndUpdate(
         req.params.eventId,
         updateData,
-        { new: true }
+        {new: true}
       ).populate("student", "first_name last_name class_name");
 
       res.json(medicalEvent);
@@ -210,12 +212,12 @@ class NurseController {
   // Mark a medical event as resolved
   static async resolveEvent(req, res, next) {
     try {
-      const { treatment_notes } = req.body;
+      const {treatment_notes} = req.body;
 
       const medicalEvent = await MedicalEvent.findById(req.params.eventId);
 
       if (!medicalEvent) {
-        return res.status(404).json({ error: "Medical event not found" });
+        return res.status(404).json({error: "Medical event not found"});
       }
 
       medicalEvent.status = "Resolved";
@@ -230,26 +232,26 @@ class NurseController {
       res.json(medicalEvent);
     } catch (error) {
       console.error("Error resolving medical event:", error);
-      res.status(400).json({ error: "Failed to resolve medical event" });
+      res.status(400).json({error: "Failed to resolve medical event"});
     }
   }
 
   // Record medication administered for a medical event
   static async addMedication(req, res, next) {
     try {
-      const { name, dosage, time } = req.body;
+      const {name, dosage, time} = req.body;
 
       const medicalEvent = await MedicalEvent.findById(req.params.eventId);
 
       if (!medicalEvent) {
-        return res.status(404).json({ error: "Medical event not found" });
+        return res.status(404).json({error: "Medical event not found"});
       }
 
       medicalEvent.medications_administered.push({
         name,
         dosage,
         time: time || new Date(),
-        administered_by: req.nurse._id,
+        administered_by: req.user._id,
       });
 
       await medicalEvent.save();
@@ -257,19 +259,19 @@ class NurseController {
       res.json(medicalEvent);
     } catch (error) {
       console.error("Error adding medication:", error);
-      res.status(400).json({ error: "Failed to add medication" });
+      res.status(400).json({error: "Failed to add medication"});
     }
   }
 
   // Update parent notification status
   static async updateParentNotification(req, res, next) {
     try {
-      const { status, method } = req.body;
+      const {status, method} = req.body;
 
       const medicalEvent = await MedicalEvent.findById(req.params.eventId);
 
       if (!medicalEvent) {
-        return res.status(404).json({ error: "Medical event not found" });
+        return res.status(404).json({error: "Medical event not found"});
       }
 
       medicalEvent.parent_notified = {
@@ -283,7 +285,7 @@ class NurseController {
       res.json(medicalEvent);
     } catch (error) {
       console.error("Error updating parent notification:", error);
-      res.status(400).json({ error: "Failed to update parent notification" });
+      res.status(400).json({error: "Failed to update parent notification"});
     }
   }
 
@@ -293,23 +295,23 @@ class NurseController {
       const requests = await MedicineRequest.find()
         .populate("student", "first_name last_name class_name")
         .populate("created_by", "first_name last_name")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       res.json(requests);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch medicine requests" });
+      res.status(500).json({error: "Failed to fetch medicine requests"});
     }
   }
 
   static async updateMedicineRequestStatus(req, res, next) {
     try {
-      const { requestId } = req.params;
-      const { status } = req.body;
+      const {requestId} = req.params;
+      const {status} = req.body;
 
       if (!["approved", "rejected", "completed"].includes(status)) {
         return res
           .status(400)
-          .json({ success: false, message: "Trạng thái không hợp lệ" });
+          .json({success: false, message: "Trạng thái không hợp lệ"});
       }
 
       const updatedRequest = await MedicineRequest.findByIdAndUpdate(
@@ -320,7 +322,7 @@ class NurseController {
           approved_by:
             status === "approved" && req.user?.name ? req.user.name : undefined,
         },
-        { new: true }
+        {new: true}
       )
         .populate("student", "first_name last_name class_name")
         .populate("created_by", "first_name last_name");
@@ -328,34 +330,34 @@ class NurseController {
       if (!updatedRequest) {
         return res
           .status(404)
-          .json({ success: false, message: "Không tìm thấy yêu cầu" });
+          .json({success: false, message: "Không tìm thấy yêu cầu"});
       }
 
-      res.json({ success: true, data: updatedRequest });
+      res.json({success: true, data: updatedRequest});
     } catch (error) {
       console.error("Lỗi khi cập nhật trạng thái:", error);
-      res.status(500).json({ success: false, message: "Lỗi server" });
+      res.status(500).json({success: false, message: "Lỗi server"});
     }
   }
 
   static async getMedicineInventory(req, res, next) {
     try {
       const inventory = await MedicineRequest.aggregate([
-        { $unwind: "$medicines" },
+        {$unwind: "$medicines"},
         {
           $group: {
             _id: "$medicines.name",
-            totalRequests: { $sum: 1 },
-            commonDosage: { $first: "$medicines.dosage" },
-            commonFrequency: { $first: "$medicines.frequency" },
+            totalRequests: {$sum: 1},
+            commonDosage: {$first: "$medicines.dosage"},
+            commonFrequency: {$first: "$medicines.frequency"},
           },
         },
-        { $sort: { totalRequests: -1 } },
+        {$sort: {totalRequests: -1}},
       ]);
 
       res.json(inventory);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch inventory data" });
+      res.status(500).json({error: "Failed to fetch inventory data"});
     }
   }
 
@@ -366,7 +368,7 @@ class NurseController {
         campaign_type: "vaccination",
       })
         .populate("created_by", "first_name last_name")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       res.json({
         success: true,
@@ -428,50 +430,50 @@ class NurseController {
   }
 
   static async updateCampaignStatus(req, res, next) {
-  try {
-    const campaignId = req.params.campaignId;
-    const { status } = req.body;
+    try {
+      const campaignId = req.params.campaignId;
+      const {status} = req.body;
 
-    // Validate status
-    const validStatuses = ["draft", "active", "completed", "cancelled"];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
+      // Validate status
+      const validStatuses = ["draft", "active", "completed", "cancelled"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          error:
+            "Invalid status. Must be one of: draft, active, completed, cancelled",
+        });
+      }
+
+      const campaign = await Campaign.findByIdAndUpdate(
+        campaignId,
+        {status},
+        {new: true}
+      ).populate("created_by", "first_name last_name");
+
+      if (!campaign) {
+        return res.status(404).json({
+          success: false,
+          error: "Campaign not found",
+        });
+      }
+
+      // Nếu chuyển sang active và cần consent thì tạo consent notifications
+      if (status === "active" && campaign.requires_consent) {
+        await NurseController.createConsentNotifications(campaign);
+      }
+
+      res.json({
+        success: true,
+        data: campaign,
+      });
+    } catch (error) {
+      console.error("Error updating campaign status:", error);
+      res.status(400).json({
         success: false,
-        error:
-          "Invalid status. Must be one of: draft, active, completed, cancelled",
+        error: "Failed to update campaign status",
       });
     }
-
-    const campaign = await Campaign.findByIdAndUpdate(
-      campaignId,
-      { status },
-      { new: true }
-    ).populate("created_by", "first_name last_name");
-
-    if (!campaign) {
-      return res.status(404).json({
-        success: false,
-        error: "Campaign not found",
-      });
-    }
-
-    // Nếu chuyển sang active và cần consent thì tạo consent notifications
-    if (status === "active" && campaign.requires_consent) {
-      await NurseController.createConsentNotifications(campaign);
-    }
-
-    res.json({
-      success: true,
-      data: campaign,
-    });
-  } catch (error) {
-    console.error("Error updating campaign status:", error);
-    res.status(400).json({
-      success: false,
-      error: "Failed to update campaign status",
-    });
   }
-}
 
   // Helper method to create consent notifications for eligible students
   static async createConsentNotifications(campaign) {
@@ -483,7 +485,7 @@ class NurseController {
       // Find all eligible students based on target classes
       const eligibleStudents = await User.find({
         role: "student",
-        class_name: { $in: campaign.target_classes },
+        class_name: {$in: campaign.target_classes},
       }).select("_id first_name last_name class_name");
 
       console.log(`Found ${eligibleStudents.length} eligible students`);
@@ -533,46 +535,46 @@ class NurseController {
 
   // Manual method to create consent notifications for a campaign
   static async createConsentNotificationsForCampaign(req, res, next) {
-  try {
-    const { campaignId } = req.params;
+    try {
+      const {campaignId} = req.params;
 
-    // Find the campaign
-    const campaign = await Campaign.findById(campaignId);
-    if (!campaign) {
-      return res.status(404).json({
+      // Find the campaign
+      const campaign = await Campaign.findById(campaignId);
+      if (!campaign) {
+        return res.status(404).json({
+          success: false,
+          error: "Campaign not found",
+        });
+      }
+
+      // Only allow consent creation for campaigns that require consent
+      if (!campaign.requires_consent) {
+        return res.status(400).json({
+          success: false,
+          error: "This campaign does not require consent",
+        });
+      }
+
+      // Create consent notifications
+      const result = await NurseController.createConsentNotifications(campaign);
+
+      res.json({
+        success: true,
+        data: {
+          campaign_id: campaign._id,
+          campaign_title: campaign.title,
+          ...result,
+        },
+        message: `Created ${result.created} new consent notifications out of ${result.total} eligible students`,
+      });
+    } catch (error) {
+      console.error("Error creating consent notifications manually:", error);
+      res.status(500).json({
         success: false,
-        error: "Campaign not found",
+        error: "Failed to create consent notifications",
       });
     }
-
-    // Only allow consent creation for campaigns that require consent
-    if (!campaign.requires_consent) {
-      return res.status(400).json({
-        success: false,
-        error: "This campaign does not require consent",
-      });
-    }
-
-    // Create consent notifications
-    const result = await NurseController.createConsentNotifications(campaign);
-
-    res.json({
-      success: true,
-      data: {
-        campaign_id: campaign._id,
-        campaign_title: campaign.title,
-        ...result,
-      },
-      message: `Created ${result.created} new consent notifications out of ${result.total} eligible students`,
-    });
-  } catch (error) {
-    console.error("Error creating consent notifications manually:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to create consent notifications"
-    });
   }
-}
 
   static async getVaccinationList(req, res, next) {
     try {
@@ -581,13 +583,13 @@ class NurseController {
       // Get campaign details
       const campaign = await Campaign.findById(campaignId);
       if (!campaign) {
-        return res.status(404).json({ error: "Campaign not found" });
+        return res.status(404).json({error: "Campaign not found"});
       }
 
       // Get eligible students (based on target classes)
       const eligibleStudents = await User.find({
         role: "student",
-        class_name: { $in: campaign.target_classes },
+        class_name: {$in: campaign.target_classes},
       }).select("first_name last_name class_name dateOfBirth gender");
 
       // Get consent status
@@ -637,92 +639,96 @@ class NurseController {
   }
 
   static async recordVaccination(req, res, next) {
-  try {
-    const { campaignId } = req.params;
-    const {
-      student_id,
-      vaccinated_at,
-      vaccine_details,
-      administered_by,
-      side_effects,
-      follow_up_required,
-      follow_up_date,
-      notes,
-    } = req.body;
-
-    // Validate campaign
-    const campaign = await Campaign.findById(campaignId);
-    if (!campaign) {
-      return res.status(404).json({ error: "Campaign not found" });
-    }
-    if (!['draft', 'active'].includes(campaign.status)) {
-      return res.status(400).json({
-        error: "Cannot record vaccination: Campaign must be in draft or active status"
-      });
-    }
-
-    // Validate student
-    const student = await validateStudentRole(student_id);
-    if (!student) {
-      return res.status(404).json({
-        error: "Student not found or ID does not belong to a student",
-      });
-    }
-
-    // Check consent status if campaign requires consent
-    if (campaign.requires_consent) {
-      const consent = await CampaignConsent.findOne({
-        campaign: campaignId,
-        student: student_id,
-      });
-      if (!consent || consent.status !== CAMPAIGN_CONSENT_STATUS.APPROVED) {
-        return res.status(400).json({
-          error: "Cannot record vaccination: Consent not approved"
-        });
-      }
-    }
-
-    // Create vaccination record
-    const vaccinationResult = new CampaignResult({
-      campaign: campaignId,
-      student: student_id,
-      created_by: req.user._id,
-      notes,
-      vaccination_details: {
-        vaccinated_at: new Date(vaccinated_at),
+    try {
+      const {campaignId} = req.params;
+      const {
+        student_id,
+        vaccinated_at,
         vaccine_details,
         administered_by,
-        side_effects: side_effects || [],
-        follow_up_required: follow_up_required || false,
-        follow_up_date: follow_up_date ? new Date(follow_up_date) : null,
-        status: follow_up_required ? "follow_up_needed" : "completed",
-      },
-    });
+        side_effects,
+        follow_up_required,
+        follow_up_date,
+        notes,
+      } = req.body;
 
-    await vaccinationResult.save();
-    await vaccinationResult.populate("student", "first_name last_name class_name");
-    await vaccinationResult.populate("created_by", "first_name last_name");
+      // Validate campaign
+      const campaign = await Campaign.findById(campaignId);
+      if (!campaign) {
+        return res.status(404).json({error: "Campaign not found"});
+      }
+      if (!["draft", "active"].includes(campaign.status)) {
+        return res.status(400).json({
+          error:
+            "Cannot record vaccination: Campaign must be in draft or active status",
+        });
+      }
 
-    res.status(201).json({
-      success: true,
-      data: vaccinationResult,
-      message: "Vaccination record created successfully"
-    });
-  } catch (error) {
-    console.error("Error recording vaccination:", error);
-    res.status(400).json({ error: "Failed to record vaccination" });
+      // Validate student
+      const student = await validateStudentRole(student_id);
+      if (!student) {
+        return res.status(404).json({
+          error: "Student not found or ID does not belong to a student",
+        });
+      }
+
+      // Check consent status if campaign requires consent
+      if (campaign.requires_consent) {
+        const consent = await CampaignConsent.findOne({
+          campaign: campaignId,
+          student: student_id,
+        });
+        if (!consent || consent.status !== CAMPAIGN_CONSENT_STATUS.APPROVED) {
+          return res.status(400).json({
+            error: "Cannot record vaccination: Consent not approved",
+          });
+        }
+      }
+
+      // Create vaccination record
+      const vaccinationResult = new CampaignResult({
+        campaign: campaignId,
+        student: student_id,
+        created_by: req.user._id,
+        notes,
+        vaccination_details: {
+          vaccinated_at: new Date(vaccinated_at),
+          vaccine_details,
+          administered_by,
+          side_effects: side_effects || [],
+          follow_up_required: follow_up_required || false,
+          follow_up_date: follow_up_date ? new Date(follow_up_date) : null,
+          status: follow_up_required ? "follow_up_needed" : "completed",
+        },
+      });
+
+      await vaccinationResult.save();
+      await vaccinationResult.populate(
+        "student",
+        "first_name last_name class_name"
+      );
+      await vaccinationResult.populate("created_by", "first_name last_name");
+
+      res.status(201).json({
+        success: true,
+        data: vaccinationResult,
+        message: "Vaccination record created successfully",
+      });
+    } catch (error) {
+      console.error("Error recording vaccination:", error);
+      res.status(400).json({error: "Failed to record vaccination"});
+    }
   }
-}
 
   static async updateVaccinationFollowUp(req, res, next) {
     try {
-      const { resultId } = req.params;
-      const { follow_up_date, follow_up_notes, status, additional_actions } =
+      const {resultId} = req.params;
+      const {follow_up_date, follow_up_notes, status, additional_actions} =
         req.body;
 
       const result = await CampaignResult.findById(resultId);
       if (!result) {
-        return res.status(404).json({ error: "Vaccination result not found" });
+        return res.status(404).json({error: "Vaccination result not found"});
       }
 
       // Update follow-up information
@@ -746,7 +752,7 @@ class NurseController {
       });
     } catch (error) {
       console.error("Error updating vaccination follow-up:", error);
-      res.status(400).json({ error: "Failed to update vaccination follow-up" });
+      res.status(400).json({error: "Failed to update vaccination follow-up"});
     }
   }
 
@@ -771,19 +777,19 @@ class NurseController {
       startOfMonth.setHours(0, 0, 0, 0);
 
       stats.vaccinations_this_month = await CampaignResult.countDocuments({
-        createdAt: { $gte: startOfMonth },
-        "vaccination_details.vaccinated_at": { $exists: true },
+        createdAt: {$gte: startOfMonth},
+        "vaccination_details.vaccinated_at": {$exists: true},
       });
 
       // Students needing follow-up
       stats.follow_up_needed = await CampaignResult.countDocuments({
         "vaccination_details.follow_up_required": true,
-        "vaccination_details.status": { $ne: "completed" },
+        "vaccination_details.status": {$ne: "completed"},
       });
 
       // Vaccination completion rate by campaign
       const completionRates = await Campaign.aggregate([
-        { $match: { campaign_type: "vaccination", status: { $ne: "draft" } } },
+        {$match: {campaign_type: "vaccination", status: {$ne: "draft"}}},
         {
           $lookup: {
             from: "campaignresults",
@@ -795,14 +801,14 @@ class NurseController {
         {
           $lookup: {
             from: "users",
-            let: { target_classes: "$target_classes" },
+            let: {target_classes: "$target_classes"},
             pipeline: [
               {
                 $match: {
                   $expr: {
                     $and: [
-                      { $eq: ["$role", "student"] },
-                      { $in: ["$class_name", "$$target_classes"] },
+                      {$eq: ["$role", "student"]},
+                      {$in: ["$class_name", "$$target_classes"]},
                     ],
                   },
                 },
@@ -814,15 +820,12 @@ class NurseController {
         {
           $project: {
             title: 1,
-            total_eligible: { $size: "$eligible_students" },
-            vaccinated: { $size: "$results" },
+            total_eligible: {$size: "$eligible_students"},
+            vaccinated: {$size: "$results"},
             completion_rate: {
               $multiply: [
                 {
-                  $divide: [
-                    { $size: "$results" },
-                    { $size: "$eligible_students" },
-                  ],
+                  $divide: [{$size: "$results"}, {$size: "$eligible_students"}],
                 },
                 100,
               ],
@@ -836,7 +839,7 @@ class NurseController {
       res.json(stats);
     } catch (error) {
       console.error("Error getting vaccination statistics:", error);
-      res.status(500).json({ error: "Failed to fetch vaccination statistics" });
+      res.status(500).json({error: "Failed to fetch vaccination statistics"});
     }
   }
 
@@ -847,7 +850,7 @@ class NurseController {
         campaign_type: "health_check",
       })
         .populate("created_by", "first_name last_name")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       res.json({
         success: true,
@@ -864,7 +867,7 @@ class NurseController {
 
   static async createHealthCheckCampaign(req, res, next) {
     try {
-      const { title, description, date } = req.body;
+      const {title, description, date} = req.body;
 
       const campaign = new Campaign({
         title,
@@ -876,7 +879,7 @@ class NurseController {
       await campaign.save();
       res.status(201).json(campaign);
     } catch (error) {
-      res.status(400).json({ error: "Failed to create health check campaign" });
+      res.status(400).json({error: "Failed to create health check campaign"});
     }
   }
 
@@ -890,13 +893,13 @@ class NurseController {
 
       res.json(results);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch health check results" });
+      res.status(500).json({error: "Failed to fetch health check results"});
     }
   }
 
   static async createHealthCheckResult(req, res, next) {
     try {
-      const { studentId, checkupDetails, notes } = req.body;
+      const {studentId, checkupDetails, notes} = req.body;
 
       // Validate student role
       const student = await validateStudentRole(studentId);
@@ -909,7 +912,7 @@ class NurseController {
       const result = new CampaignResult({
         campaign: req.params.campaignId,
         student: studentId,
-        created_by: req.nurse._id,
+        created_by: req.user._id,
         notes,
         checkupDetails,
       });
@@ -919,7 +922,7 @@ class NurseController {
 
       res.status(201).json(result);
     } catch (error) {
-      res.status(400).json({ error: "Failed to record health check result" });
+      res.status(400).json({error: "Failed to record health check result"});
     }
   }
 
@@ -935,7 +938,7 @@ class NurseController {
           },
         })
         .populate("student", "first_name last_name class_name")
-        .sort({ scheduledDate: 1 });
+        .sort({scheduledDate: 1});
 
       res.json({
         success: true,
@@ -943,7 +946,7 @@ class NurseController {
       });
     } catch (error) {
       console.error("Error fetching consultations:", error);
-      res.status(500).json({ error: "Failed to fetch consultations" });
+      res.status(500).json({error: "Failed to fetch consultations"});
     }
   }
 
@@ -986,11 +989,11 @@ class NurseController {
         $or: [
           // Case 1: Existing consultation starts before requested and ends after requested starts
           {
-            scheduledDate: { $lte: requestedDate },
+            scheduledDate: {$lte: requestedDate},
             $expr: {
               $gt: [
                 {
-                  $add: ["$scheduledDate", { $multiply: ["$duration", 60000] }],
+                  $add: ["$scheduledDate", {$multiply: ["$duration", 60000]}],
                 },
                 requestedDate,
               ],
@@ -998,17 +1001,16 @@ class NurseController {
           },
           // Case 2: Existing consultation starts during requested consultation
           {
-
-  scheduledDate: { $gte: requestedDate, $lt: requestedEndTime }
-},
+            scheduledDate: {$gte: requestedDate, $lt: requestedEndTime},
+          },
 
           // Case 3: Requested consultation is completely within existing consultation
           {
-            scheduledDate: { $lte: requestedDate },
+            scheduledDate: {$lte: requestedDate},
             $expr: {
               $gte: [
                 {
-                  $add: ["$scheduledDate", { $multiply: ["$duration", 60000] }],
+                  $add: ["$scheduledDate", {$multiply: ["$duration", 60000]}],
                 },
                 requestedEndTime,
               ],
@@ -1105,6 +1107,71 @@ class NurseController {
     }
   }
 
+  static async updateConsultationSchedule(req, res, next) {
+    try {
+      const {scheduleId} = req.params;
+      const {status, reason, notes} = req.body;
+
+      // Validate required fields
+      if (!status && !reason && !notes) {
+        return res.status(400).json({
+          success: false,
+          error:
+            "At least one field must be provided: status, reason, or notes",
+        });
+      }
+
+      // Validate status enum if provided
+      if (status !== undefined) {
+        const validStatuses = Object.values(CONSULTATION_STATUS);
+        if (!validStatuses.includes(status)) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid status. Must be one of: ${validStatuses.join(
+              ", "
+            )}`,
+          });
+        }
+      }
+
+      // Find the consultation schedule
+      const consultation = await ConsultationSchedule.findById(scheduleId);
+      if (!consultation) {
+        return res.status(404).json({
+          success: false,
+          error: "Consultation schedule not found",
+        });
+      }
+
+      // Update the fields
+      if (status !== undefined) consultation.status = status;
+      if (reason !== undefined) consultation.reason = reason;
+      if (notes !== undefined) consultation.notes = notes;
+
+      await consultation.save();
+
+      // Populate the updated consultation
+      const updatedConsultation = await ConsultationSchedule.findById(
+        scheduleId
+      )
+        .populate("campaignResult")
+        .populate("student", "first_name last_name class_name")
+        .populate("medicalStaff", "first_name last_name")
+        .populate("attending_parent", "first_name last_name");
+
+      res.json({
+        success: true,
+        data: updatedConsultation,
+      });
+    } catch (error) {
+      console.error("Error updating consultation schedule:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to update consultation schedule",
+      });
+    }
+  }
+
   // General Campaign Management
   static async getCampaigns(req, res, next) {
     try {
@@ -1112,12 +1179,12 @@ class NurseController {
         campaign_type: CAMPAIGN_TYPE.CHECKUP,
       })
         .populate("created_by", "first_name last_name")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       res.json(campaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
-      res.status(500).json({ error: "Failed to fetch campaigns" });
+      res.status(500).json({error: "Failed to fetch campaigns"});
     }
   }
 
@@ -1167,7 +1234,7 @@ class NurseController {
       await campaign.save();
       await campaign.populate("created_by", "first_name last_name");
 
-      res.status(201).json({ success: true, data: campaign });
+      res.status(201).json({success: true, data: campaign});
     } catch (error) {
       console.error("Error creating campaign:", error);
       res.status(400).json({
@@ -1180,22 +1247,22 @@ class NurseController {
 
   static async updateCampaign(req, res, next) {
     try {
-      const { campaignId } = req.params;
+      const {campaignId} = req.params;
       const updateData = req.body;
 
       const campaign = await Campaign.findByIdAndUpdate(
         campaignId,
         updateData,
-        { new: true }
+        {new: true}
       ).populate("created_by", "first_name last_name");
 
       if (!campaign) {
         return res
           .status(404)
-          .json({ success: false, message: "Campaign not found" });
+          .json({success: false, message: "Campaign not found"});
       }
 
-      res.json({ success: true, data: campaign });
+      res.json({success: true, data: campaign});
     } catch (error) {
       console.error("Error updating campaign:", error);
       res.status(400).json({
@@ -1208,14 +1275,14 @@ class NurseController {
 
   static async getCampaignConsents(req, res, next) {
     try {
-      const { campaignId } = req.params;
+      const {campaignId} = req.params;
 
       const consents = await CampaignConsent.find({
         campaign: campaignId,
       })
         .populate("student", "first_name last_name class_name")
         .populate("answered_by", "first_name last_name")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       res.json({
         success: true,
@@ -1232,14 +1299,14 @@ class NurseController {
 
   static async getCampaignResults(req, res, next) {
     try {
-      const { campaignId } = req.params;
+      const {campaignId} = req.params;
 
       const results = await CampaignResult.find({
         campaign: campaignId,
       })
         .populate("student", "first_name last_name class_name")
         .populate("created_by", "first_name last_name")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       res.json({
         success: true,
@@ -1254,9 +1321,30 @@ class NurseController {
     }
   }
 
+  static async getAllCampaignResults(req, res, next) {
+    try {
+      const results = await CampaignResult.find()
+        .populate("campaign", "title campaign_type")
+        .populate("student", "first_name last_name class_name")
+        .populate("created_by", "first_name last_name")
+        .sort({createdAt: -1});
+
+      res.json({
+        success: true,
+        data: results,
+      });
+    } catch (error) {
+      console.error("Error fetching all campaign results:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch campaign results",
+      });
+    }
+  }
+
   static async submitCampaignResult(req, res, next) {
     try {
-      const { campaign, student, notes, vaccination_details, checkupDetails } =
+      const {campaign, student, notes, vaccination_details, checkupDetails} =
         req.body;
 
       // Validate student
@@ -1295,31 +1383,29 @@ class NurseController {
   }
 
   static async getConsultationSchedules(req, res, next) {
+    try {
+      const schedules = await ConsultationSchedule.find()
+        .populate({
+          path: "campaignResult",
+          populate: {
+            path: "campaign",
+            select: "title campaign_type",
+          },
+        })
+        .populate("student", "first_name last_name class_name")
+        .populate("attending_parent", "first_name last_name email phone_number") // <-- thêm dòng này
+        .sort({scheduledDate: 1});
 
-  try {
-    const schedules = await ConsultationSchedule.find()
-      .populate({
-        path: "campaignResult",
-        populate: {
-          path: "campaign",
-          select: "title campaign_type"
-        }
-      })
-      .populate("student", "first_name last_name class_name")
-      .populate("attending_parent", "first_name last_name email") // <-- thêm dòng này
-      .sort({ scheduledDate: 1 });
-
-    res.json(schedules);
-  } catch (error) {
-    console.error("Error fetching consultation schedules:", error);
-    res.status(500).json({ error: "Failed to fetch consultation schedules" });
-
+      res.json(schedules);
+    } catch (error) {
+      console.error("Error fetching consultation schedules:", error);
+      res.status(500).json({error: "Failed to fetch consultation schedules"});
+    }
   }
-}
-    
+
   static async checkConsultationOverlap(req, res, next) {
     try {
-      const { scheduledDate, duration = 30 } = req.body;
+      const {scheduledDate, duration = 30} = req.body;
       const medicalStaffId = req.user.id;
 
       // Validate required fields
@@ -1358,11 +1444,11 @@ class NurseController {
         $or: [
           // Case 1: Existing consultation starts before requested and ends after requested starts
           {
-            scheduledDate: { $lte: requestedDate },
+            scheduledDate: {$lte: requestedDate},
             $expr: {
               $gt: [
                 {
-                  $add: ["$scheduledDate", { $multiply: ["$duration", 60000] }],
+                  $add: ["$scheduledDate", {$multiply: ["$duration", 60000]}],
                 },
                 requestedDate,
               ],
@@ -1370,17 +1456,17 @@ class NurseController {
           },
           // Case 2: Existing consultation starts during requested consultation
 
-         {
-  scheduledDate: { $gte: requestedDate, $lt: requestedEndTime }
-},
+          {
+            scheduledDate: {$gte: requestedDate, $lt: requestedEndTime},
+          },
 
           // Case 3: Requested consultation is completely within existing consultation
           {
-            scheduledDate: { $lte: requestedDate },
+            scheduledDate: {$lte: requestedDate},
             $expr: {
               $gte: [
                 {
-                  $add: ["$scheduledDate", { $multiply: ["$duration", 60000] }],
+                  $add: ["$scheduledDate", {$multiply: ["$duration", 60000]}],
                 },
                 requestedEndTime,
               ],
@@ -1442,15 +1528,15 @@ class NurseController {
 
   static async getVaccinationResults(req, res, next) {
     try {
-      const { campaignId } = req.params;
+      const {campaignId} = req.params;
 
       const results = await CampaignResult.find({
         campaign: campaignId,
-        vaccination_details: { $exists: true },
+        vaccination_details: {$exists: true},
       })
         .populate("student", "first_name last_name class_name")
         .populate("created_by", "first_name last_name")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       res.json({
         success: true,
@@ -1467,7 +1553,7 @@ class NurseController {
 
   static async createVaccinationResult(req, res, next) {
     try {
-      const { campaignId } = req.params;
+      const {campaignId} = req.params;
       const {
         student,
         vaccine_name,
@@ -1530,7 +1616,7 @@ class NurseController {
         role: "medicalStaff",
       })
         .select("first_name last_name email role phone_number staff_role")
-        .sort({ last_name: 1, first_name: 1 });
+        .sort({last_name: 1, first_name: 1});
 
       res.json({
         success: true,
@@ -1548,10 +1634,10 @@ class NurseController {
   // Student-Parent Relations Management
   static async getStudentParentRelations(req, res, next) {
     try {
-      const relations = await StudentParent.find({ is_active: true })
+      const relations = await StudentParent.find({is_active: true})
         .populate("student", "first_name last_name class_name")
         .populate("parent", "first_name last_name email phone_number")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       res.json({
         success: true,
@@ -1569,9 +1655,9 @@ class NurseController {
   // Student Management
   static async getStudents(req, res, next) {
     try {
-      const students = await User.find({ role: "student" })
+      const students = await User.find({role: "student"})
         .select("first_name last_name class_name dateOfBirth gender email")
-        .sort({ class_name: 1, last_name: 1, first_name: 1 });
+        .sort({class_name: 1, last_name: 1, first_name: 1});
 
       res.json({
         success: true,
@@ -1589,10 +1675,10 @@ class NurseController {
   // Student Health Profile Management
   static async getStudentHealthProfile(req, res, next) {
     try {
-      const { studentId } = req.params;
+      const {studentId} = req.params;
 
       // Validate student exists
-      const student = await User.findOne({ _id: studentId, role: "student" });
+      const student = await User.findOne({_id: studentId, role: "student"});
       if (!student) {
         return res.status(404).json({
           success: false,
@@ -1627,11 +1713,11 @@ class NurseController {
 
   static async updateStudentHealthProfile(req, res, next) {
     try {
-      const { studentId } = req.params;
+      const {studentId} = req.params;
       const updateData = req.body;
 
       // Validate student exists
-      const student = await User.findOne({ _id: studentId, role: "student" });
+      const student = await User.findOne({_id: studentId, role: "student"});
       if (!student) {
         return res.status(404).json({
           success: false,
@@ -1641,9 +1727,9 @@ class NurseController {
 
       // Update or create health profile
       let healthProfile = await HealthProfile.findOneAndUpdate(
-        { student: studentId },
+        {student: studentId},
         updateData,
-        { new: true, upsert: true }
+        {new: true, upsert: true}
       ).populate("student", "first_name last_name class_name");
 
       res.json({
@@ -1661,10 +1747,10 @@ class NurseController {
 
   static async getStudentMedicalHistory(req, res, next) {
     try {
-      const { studentId } = req.params;
+      const {studentId} = req.params;
 
       // Validate student exists
-      const student = await User.findOne({ _id: studentId, role: "student" });
+      const student = await User.findOne({_id: studentId, role: "student"});
       if (!student) {
         return res.status(404).json({
           success: false,
@@ -1673,15 +1759,15 @@ class NurseController {
       }
 
       // Get medical events for this student
-      const medicalEvents = await MedicalEvent.find({ student: studentId })
+      const medicalEvents = await MedicalEvent.find({student: studentId})
         .populate("created_by", "first_name last_name")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       // Get campaign results for this student
-      const campaignResults = await CampaignResult.find({ student: studentId })
+      const campaignResults = await CampaignResult.find({student: studentId})
         .populate("campaign", "title campaign_type")
         .populate("created_by", "first_name last_name")
-        .sort({ createdAt: -1 });
+        .sort({createdAt: -1});
 
       res.json({
         success: true,
@@ -1702,6 +1788,3 @@ class NurseController {
 }
 
 module.exports = NurseController;
-
-
-

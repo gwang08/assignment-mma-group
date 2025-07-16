@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import {SafeAreaView} from "react-native-safe-area-context";
 import {useAuth} from "../../context/AuthContext";
 import nurseAPI from "../../services/nurseApi";
 import colors from "../../styles/colors";
@@ -20,7 +21,7 @@ import DashboardStats from "../../components/nurse/DashboardStats";
 import FunctionGrid from "../../components/nurse/FunctionGrid";
 import MedicalEventsList from "../../components/nurse/MedicalEventsList";
 import MedicineRequestsList from "../../components/nurse/MedicineRequestsList";
-
+import NurseProfile from "../nurse/NurseProfileScreen";
 const NurseScreen = () => {
   const {user, signOut} = useAuth();
   const navigation = useNavigation();
@@ -33,6 +34,7 @@ const NurseScreen = () => {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   // Load dashboard data
   const loadDashboard = async () => {
@@ -196,39 +198,86 @@ const NurseScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      <DashboardHeader user={user} />
-      <DashboardStats dashboardData={dashboardData} />
-      <FunctionGrid
-        functionCards={functionCards}
-        onFunctionPress={handleFunctionPress}
-      />
-      <View style={styles.spacing}>
-        <MedicalEventsList events={dashboardData?.recentEvents} />
-        <MedicineRequestsList requests={dashboardData?.recentRequests} />
+    <SafeAreaView style={styles.safeArea}>
+      {/* Tab bar */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[
+            styles.tabBtn,
+            activeTab === "dashboard" && styles.tabBtnActive,
+          ]}
+          onPress={() => setActiveTab("dashboard")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "dashboard" && styles.tabTextActive,
+            ]}
+          >
+            Tổng quan
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tabBtn,
+            activeTab === "profile" && styles.tabBtnActive,
+          ]}
+          onPress={() => setActiveTab("profile")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "profile" && styles.tabTextActive,
+            ]}
+          >
+            Hồ sơ cá nhân
+          </Text>
+        </TouchableOpacity>
       </View>
-
-      <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
-        <Text style={styles.logoutText}>Đăng Xuất</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      {/* Tab content */}
+      {activeTab === "dashboard" ? (
+        <ScrollView
+          style={styles.container}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <DashboardHeader user={user} />
+          <DashboardStats dashboardData={dashboardData} />
+          <FunctionGrid
+            functionCards={functionCards}
+            onFunctionPress={handleFunctionPress}
+          />
+          <View style={styles.spacing}>
+            <MedicalEventsList events={dashboardData?.recentEvents} />
+            <MedicineRequestsList requests={dashboardData?.recentRequests} />
+          </View>
+          <TouchableOpacity style={styles.logoutButton} onPress={signOut}>
+            <Text style={styles.logoutText}>Đăng Xuất</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      ) : (
+        <NurseProfile user={user} />
+      )}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -267,6 +316,30 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  tabBar: {
+    flexDirection: "row",
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  tabBtnActive: {
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primary,
+    backgroundColor: "#f7f7f7",
+  },
+  tabText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: "bold",
+  },
+  tabTextActive: {
+    color: colors.primary,
   },
 });
 

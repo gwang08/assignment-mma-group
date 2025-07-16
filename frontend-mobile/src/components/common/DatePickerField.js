@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React, {useState} from "react";
+import {View, Text, TouchableOpacity, StyleSheet} from "react-native";
+import {Ionicons} from "@expo/vector-icons";
 import CalendarPicker from "./CalendarPicker";
 import colors from "../../styles/colors";
 
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 15,
     paddingVertical: 12,
-    backgroundColor: colors.lightGray,
+    backgroundColor: "white",
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border || colors.lightGray,

@@ -5,13 +5,13 @@ import colors from "../../styles/colors";
 const MedicineRequestsList = ({requests}) => {
   const getStatusColor = (status) => {
     switch (status) {
-      case "Pending":
+      case "pending":
         return "#FFA502";
-      case "Approved":
+      case "approved":
         return "#2ED573";
-      case "Rejected":
+      case "rejected":
         return "#FF4757";
-      case "Completed":
+      case "completed":
         return "#3742FA";
       default:
         return "#747D8C";
@@ -30,12 +30,10 @@ const MedicineRequestsList = ({requests}) => {
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Yêu Cầu Thuốc Gần Đây</Text>
       <View style={styles.requestsContainer}>
-        {requests.map((request, index) => (
+        {requests.slice(0, 4).map((request, index) => (
           <View key={request._id || index} style={styles.requestItem}>
             <View style={styles.requestHeader}>
-              <Text style={styles.requestMedicine}>
-                {request.medicine_name}
-              </Text>
+              <Text style={styles.requestMedicine}>Yêu cầu thuốc</Text>
               <View
                 style={[
                   styles.statusBadge,
