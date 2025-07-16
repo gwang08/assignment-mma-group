@@ -451,12 +451,17 @@ const HealthCheckScreen = ({ navigation }) => {
           }
           const campaignId =
             typeof schedule.campaignResult === "object" &&
-            schedule.campaignResult.campaign
-              ? schedule.campaignResult.campaign
+            schedule.campaignResult?.campaign?._id
+              ? schedule.campaignResult.campaign._id
               : schedule.campaignResult;
           return campaignId === campaign._id;
         })
         .map((schedule) => {
+          // Chuẩn hóa trạng thái
+          const normalizedStatus = schedule.status
+            ? schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1).toLowerCase()
+            : "Scheduled";
+          console.log("Raw Status:", schedule.status, "Normalized Status:", normalizedStatus);
           const studentId =
             typeof schedule.student === "object" && schedule.student?._id
               ? schedule.student._id
@@ -464,7 +469,9 @@ const HealthCheckScreen = ({ navigation }) => {
           const student = students.find((s) => s._id === studentId);
           return {
             ...schedule,
-            status: schedule.status || "SCHEDULED",
+            status: ["Scheduled", "Completed", "Cancelled"].includes(normalizedStatus)
+              ? normalizedStatus
+              : "Scheduled",
             studentName: student
               ? `${student.first_name} ${student.last_name}`
               : "Không xác định",
@@ -1996,67 +2003,91 @@ const HealthCheckScreen = ({ navigation }) => {
               </Text>
             )}
             <Text style={[styles.modalTitle, { marginTop: 20 }]}>
-              Danh sách Lịch Tư Vấn
-            </Text>
-            {consultationSchedules.length > 0 ? (
-              consultationSchedules.map((schedule) => (
-                <View key={schedule._id} style={styles.scheduleItem}>
-                  <Text>{`Học sinh: ${schedule.studentName}`}</Text>
-                  <Text>{`Phụ huynh: ${schedule.parentName}`}</Text>
-                  <Text>{`Thời gian: ${new Date(schedule.scheduledDate)
-                    .getDate()
-                    .toString()
-                    .padStart(2, "0")}/${(
-                    new Date(schedule.scheduledDate).getMonth() + 1
-                  )
-                    .toString()
-                    .padStart(2, "0")}/${new Date(
-                    schedule.scheduledDate
-                  ).getFullYear()} ${new Date(schedule.scheduledDate)
-                    .getHours()
-                    .toString()
-                    .padStart(2, "0")}:${new Date(schedule.scheduledDate)
-                    .getMinutes()
-                    .toString()
-                    .padStart(2, "0")}`}</Text>
-                  <Text>{`Thời lượng: ${schedule.duration} phút`}</Text>
-                  <Text>{`Lý do: ${schedule.reason}`}</Text>
-                  <Text>{`Trạng thái: ${
-                    schedule.status === "SCHEDULED"
-                      ? "Đã đặt"
-                      : schedule.status === "COMPLETED"
-                      ? "Hoàn thành"
-                      : "Hủy"
-                  }`}</Text>
-                  {schedule.status === "SCHEDULED" && (
-                    <View style={styles.scheduleActions}>
-                      <TouchableOpacity
-                        style={[
-                          styles.submitButton,
-                          { backgroundColor: colors.success },
-                        ]}
-                        onPress={() => handleCompleteConsultation(schedule._id)}
-                      >
-                        <Text style={styles.submitButtonText}>Hoàn thành</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.cancelButton,
-                          { backgroundColor: colors.error },
-                        ]}
-                        onPress={() => handleOpenCancelModal(schedule._id)}
-                      >
-                        <Text style={styles.cancelButtonText}>Hủy</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              ))
-            ) : (
-              <Text style={styles.noCandidatesText}>
-                Chưa có lịch tư vấn nào
-              </Text>
-            )}
+  Danh sách Lịch Tư Vấn
+</Text>
+{consultationSchedules.length > 0 ? (
+  consultationSchedules.map((schedule) => (
+    <View key={schedule._id} style={styles.scheduleItem}>
+      <Text>{`Học sinh: ${schedule.studentName}`}</Text>
+      <Text>{`Phụ huynh: ${schedule.parentName}`}</Text>
+      <Text>{`Thời gian: ${new Date(schedule.scheduledDate)
+        .getDate()
+        .toString()
+        .padStart(2, "0")}/${(
+        new Date(schedule.scheduledDate).getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}/${new Date(schedule.scheduledDate).getFullYear()} ${new Date(
+        schedule.scheduledDate
+      )
+        .getHours()
+        .toString()
+        .padStart(2, "0")}:${new Date(schedule.scheduledDate)
+        .getMinutes()
+        .toString()
+        .padStart(2, "0")}`}</Text>
+      <Text>{`Thời lượng: ${schedule.duration} phút`}</Text>
+      <Text>{`Lý do: ${schedule.reason}`}</Text>
+      <Text>{`Trạng thái: ${
+  schedule.status === "Scheduled"
+    ? "Đã đặt"
+    : schedule.status === "Completed"
+    ? "Hoàn thành"
+    : schedule.status === "Cancelled"
+    ? "Đã hủy"
+    : "Không xác định"
+}`}</Text>
+      {schedule.status === "Scheduled" && (
+  <View style={styles.scheduleActions}>
+    <TouchableOpacity
+      style={[styles.submitButton, { backgroundColor: colors.success }]}
+      onPress={() => handleCompleteConsultation(schedule._id)}
+    >
+      <Text style={styles.submitButtonText}>Hoàn thành</Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={[styles.cancelButton, { backgroundColor: colors.error }]}
+      onPress={() => handleOpenCancelModal(schedule._id)}
+    >
+      <Text style={styles.cancelButtonText}>Hủy</Text>
+    </TouchableOpacity>
+  </View>
+)}
+{schedule.status === "Completed" && (
+  <View style={styles.scheduleActions}>
+    <TouchableOpacity
+      style={[styles.submitButton, { backgroundColor: colors.success }]}
+      disabled
+    >
+      <Text style={styles.submitButtonText}>Hoàn thành</Text>
+    </TouchableOpacity>
+  </View>
+)}
+{schedule.status === "Cancelled" && (
+  <View style={styles.scheduleActions}>
+    <TouchableOpacity
+      style={[styles.cancelButton, { backgroundColor: colors.error }]}
+      disabled
+    >
+      <Text style={styles.cancelButtonText}>Đã hủy</Text>
+    </TouchableOpacity>
+  </View>
+)}
+      {schedule.status === "CANCELLED" && (
+        <View style={styles.scheduleActions}>
+          <TouchableOpacity
+            style={[styles.cancelButton, { backgroundColor: colors.error }]}
+            disabled
+          >
+            <Text style={styles.cancelButtonText}>Đã hủy</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  ))
+) : (
+  <Text style={styles.noCandidatesText}>Chưa có lịch tư vấn nào</Text>
+)}
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => {
