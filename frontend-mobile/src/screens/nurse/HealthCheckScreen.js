@@ -132,6 +132,12 @@ const HealthCheckScreen = ({ navigation }) => {
       return [];
     }
 
+    // Kiểm tra các kết quả có requiresConsultation: true
+    const abnormalResults = resultResponse.data.filter(
+      (result) => result.checkupDetails?.requiresConsultation
+    );
+    console.log("Abnormal Results (requiresConsultation: true):", JSON.stringify(abnormalResults, null, 2));
+
     // Lấy danh sách lịch tư vấn
     const consultationResponse = await nurseAPI.getConsultationSchedules();
     console.log(
@@ -970,161 +976,174 @@ const HealthCheckScreen = ({ navigation }) => {
   };
 
   const handleAddResult = async (campaign) => {
-    try {
-      if (["completed", "cancelled"].includes(campaign.status)) {
-        Alert.alert(
-          "Lỗi",
-          `Không thể ghi kết quả cho chiến dịch có trạng thái "${
-            campaign.status === "completed" ? "Đã hoàn thành" : "Hủy"
-          }"`
-        );
-        return;
-      }
-
-      const studentResponse = await nurseAPI.getStudents();
-      if (!studentResponse.success || !Array.isArray(studentResponse.data)) {
-        Alert.alert("Lỗi", "Không thể tải danh sách học sinh");
-        setStudents([]);
-        return;
-      }
-
-      const targetClasses = campaign.target_classes || [];
-      let classesToFilter = [];
-      if (targetClasses.includes("all_grades")) {
-        classesToFilter = availableClasses;
-      } else {
-        classesToFilter = targetClasses.reduce((acc, cls) => {
-          if (cls.startsWith("grade_")) {
-            const grade = cls.replace("grade_", "");
-            const gradeClasses = availableClasses.filter((className) =>
-              className.startsWith(grade)
-            );
-            return [...acc, ...gradeClasses];
-          }
-          return [...acc, cls];
-        }, []);
-      }
-
-      const filteredStudentsByClass = studentResponse.data.filter((student) =>
-        classesToFilter.includes(student.class_name)
-      );
-
-      if (filteredStudentsByClass.length === 0) {
-        Alert.alert(
-          "Thông báo",
-          `Không có học sinh nào thuộc các lớp ${
-            classesToFilter.join(", ") || "Không xác định"
-          }`
-        );
-        setStudents([]);
-        return;
-      }
-
-      if (campaign.requires_consent) {
-        const consentResponse = await nurseAPI.getCampaignConsents(
-          campaign._id
-        );
-        if (!consentResponse.success || !Array.isArray(consentResponse.data)) {
-          Alert.alert("Lỗi", "Không thể tải danh sách đồng ý của phụ huynh");
-          return;
-        }
-
-        const consents = consentResponse.data;
-        if (consents.length === 0) {
-          Alert.alert(
-            "Thông báo",
-            "Chiến dịch này yêu cầu đồng ý của phụ huynh, nhưng chưa có phụ huynh nào đồng ý."
-          );
-          return;
-        }
-
-        const consentedStudentIds = consents
-          .filter((consent) => consent.status === "APPROVED")
-          .map((consent) =>
-            typeof consent.student === "object"
-              ? consent.student._id
-              : consent.student
-          );
-
-        if (consentedStudentIds.length === 0) {
-          Alert.alert(
-            "Thông báo",
-            "Chưa có học sinh nào được phụ huynh đồng ý tham gia chiến dịch này."
-          );
-          return;
-        }
-
-        const resultResponse = await nurseAPI.getCampaignResults(campaign._id);
-        let checkedStudentIds = [];
-        if (resultResponse.success && Array.isArray(resultResponse.data)) {
-          checkedStudentIds = resultResponse.data.map((result) =>
-            typeof result.student === "object"
-              ? result.student._id
-              : result.student
-          );
-        }
-
-        const filteredStudents = filteredStudentsByClass.filter(
-          (student) =>
-            consentedStudentIds.includes(student._id) &&
-            !checkedStudentIds.includes(student._id)
-        );
-
-        if (filteredStudents.length === 0) {
-          Alert.alert(
-            "Thông báo",
-            `Tất cả học sinh được đồng ý trong các lớp ${classesToFilter.join(
-              ", "
-            )} đã có kết quả khám.`
-          );
-          setIsResultModalVisible(false);
-          setStudents([]);
-          return;
-        }
-
-        setStudents(filteredStudents);
-        setSelectedCampaignForResult(campaign);
-        setIsResultModalVisible(true);
-      } else {
-        const resultResponse = await nurseAPI.getCampaignResults(campaign._id);
-        let checkedStudentIds = [];
-        if (resultResponse.success && Array.isArray(resultResponse.data)) {
-          checkedStudentIds = resultResponse.data.map((result) =>
-            typeof result.student === "object"
-              ? result.student._id
-              : result.student
-          );
-        }
-
-        const filteredStudents = filteredStudentsByClass.filter(
-          (student) => !checkedStudentIds.includes(student._id)
-        );
-
-        if (filteredStudents.length === 0) {
-          Alert.alert(
-            "Thông báo",
-            `Tất cả học sinh trong các lớp ${classesToFilter.join(
-              ", "
-            )} đã được ghi kết quả`
-          );
-          setIsResultModalVisible(false);
-          setStudents([]);
-          return;
-        }
-
-        setStudents(filteredStudents);
-        setSelectedCampaignForResult(campaign);
-        setIsResultModalVisible(true);
-      }
-    } catch (error) {
-      console.error("Error loading students, consents, or results:", error);
+  try {
+    console.log("Starting handleAddResult for campaign:", campaign._id);
+    if (["completed", "cancelled"].includes(campaign.status)) {
       Alert.alert(
         "Lỗi",
-        "Có lỗi khi tải danh sách học sinh, đồng ý, hoặc kết quả khám"
+        `Không thể ghi kết quả cho chiến dịch có trạng thái "${
+          campaign.status === "completed" ? "Đã hoàn thành" : "Hủy"
+        }"`
+      );
+      return;
+    }
+
+    const studentResponse = await nurseAPI.getStudents();
+    console.log("Student Response:", JSON.stringify(studentResponse.data, null, 2));
+    if (!studentResponse.success || !Array.isArray(studentResponse.data)) {
+      Alert.alert("Lỗi", "Không thể tải danh sách học sinh");
+      setStudents([]);
+      return;
+    }
+
+    const targetClasses = campaign.target_classes || [];
+    console.log("Target Classes:", targetClasses);
+    let classesToFilter = [];
+    if (targetClasses.includes("all_grades")) {
+      classesToFilter = availableClasses;
+    } else {
+      classesToFilter = targetClasses.reduce((acc, cls) => {
+        if (cls.startsWith("grade_")) {
+          const grade = cls.replace("grade_", "");
+          const gradeClasses = availableClasses.filter((className) =>
+            className.startsWith(grade)
+          );
+          return [...acc, ...gradeClasses];
+        }
+        return [...acc, cls];
+      }, []);
+    }
+    console.log("Classes to Filter:", classesToFilter);
+
+    const filteredStudentsByClass = studentResponse.data.filter((student) =>
+      classesToFilter.includes(student.class_name)
+    );
+    console.log("Filtered Students By Class:", JSON.stringify(filteredStudentsByClass, null, 2));
+
+    if (filteredStudentsByClass.length === 0) {
+      Alert.alert(
+        "Thông báo",
+        `Không có học sinh nào thuộc các lớp ${classesToFilter.join(", ") || "Không xác định"}`
       );
       setStudents([]);
+      return;
     }
-  };
+
+    if (campaign.requires_consent) {
+      const consentResponse = await nurseAPI.getCampaignConsents(campaign._id);
+      console.log("Consent Response:", JSON.stringify(consentResponse, null, 2));
+      if (!consentResponse.success || !Array.isArray(consentResponse.data)) {
+        Alert.alert("Lỗi", "Không thể tải danh sách đồng ý của phụ huynh");
+        return;
+      }
+
+      const consents = consentResponse.data;
+      console.log("Consents:", JSON.stringify(consents, null, 2));
+      if (consents.length === 0) {
+        Alert.alert(
+          "Thông báo",
+          "Chiến dịch này yêu cầu đồng ý của phụ huynh, nhưng chưa có phụ huynh nào đồng ý."
+        );
+        return;
+      }
+
+      const consentedStudentIds = consents
+        .filter((consent) => {
+          console.log("Consent Status:", consent.status);
+          return consent.status === "Approved";
+        })
+        .map((consent) => {
+          const studentId = typeof consent.student === "object" ? consent.student._id : consent.student;
+          console.log("Consented Student ID:", studentId);
+          return studentId;
+        });
+      console.log("Consented Student IDs:", consentedStudentIds);
+
+      if (consentedStudentIds.length === 0) {
+        Alert.alert(
+          "Thông báo",
+          "Chưa có học sinh nào được phụ huynh đồng ý tham gia chiến dịch này."
+        );
+        return;
+      }
+
+      const resultResponse = await nurseAPI.getCampaignResults(campaign._id);
+      console.log("Result Response:", JSON.stringify(resultResponse, null, 2));
+      let checkedStudentIds = [];
+      if (resultResponse.success && Array.isArray(resultResponse.data)) {
+        checkedStudentIds = resultResponse.data.map((result) => {
+          const studentId = typeof result.student === "object" ? result.student._id : result.student;
+          console.log("Checked Student ID:", studentId);
+          return studentId;
+        });
+      }
+      console.log("Checked Student IDs:", checkedStudentIds);
+
+      const filteredStudents = filteredStudentsByClass.filter(
+        (student) => {
+          const isConsented = consentedStudentIds.includes(student._id);
+          const isNotChecked = !checkedStudentIds.includes(student._id);
+          console.log(`Student ${student._id}: isConsented=${isConsented}, isNotChecked=${isNotChecked}`);
+          return isConsented && isNotChecked;
+        }
+      );
+      console.log("Filtered Students:", JSON.stringify(filteredStudents, null, 2));
+
+      if (filteredStudents.length === 0) {
+        Alert.alert(
+          "Thông báo",
+          `Tất cả học sinh được đồng ý trong các lớp ${classesToFilter.join(", ")} đã có kết quả khám.`
+        );
+        setIsResultModalVisible(false);
+        setStudents([]);
+        return;
+      }
+
+      setStudents(filteredStudents);
+      setSelectedCampaignForResult(campaign);
+      setIsResultModalVisible(true);
+    } else {
+      const resultResponse = await nurseAPI.getCampaignResults(campaign._id);
+      console.log("Result Response:", JSON.stringify(resultResponse, null, 2));
+      let checkedStudentIds = [];
+      if (resultResponse.success && Array.isArray(resultResponse.data)) {
+        checkedStudentIds = resultResponse.data.map((result) => {
+          const studentId = typeof result.student === "object" ? result.student._id : result.student;
+          console.log("Checked Student ID:", studentId);
+          return studentId;
+        });
+      }
+      console.log("Checked Student IDs:", checkedStudentIds);
+
+      const filteredStudents = filteredStudentsByClass.filter(
+        (student) => !checkedStudentIds.includes(student._id)
+      );
+      console.log("Filtered Students:", JSON.stringify(filteredStudents, null, 2));
+
+      if (filteredStudents.length === 0) {
+        Alert.alert(
+          "Thông báo",
+          `Tất cả học sinh trong các lớp ${classesToFilter.join(", ")} đã được ghi kết quả`
+        );
+        setIsResultModalVisible(false);
+        setStudents([]);
+        return;
+      }
+
+      setStudents(filteredStudents);
+      setSelectedCampaignForResult(campaign);
+      setIsResultModalVisible(true);
+    }
+  } catch (error) {
+    console.error("Error in handleAddResult:", JSON.stringify(error.response?.data || error, null, 2));
+    Alert.alert(
+      "Lỗi",
+      "Có lỗi khi tải danh sách học sinh, đồng ý, hoặc kết quả khám"
+    );
+    setStudents([]);
+  }
+};
+  
 
   if (loading) {
     return <LoadingScreen message="Đang tải chiến dịch kiểm tra sức khỏe..." />;
@@ -2073,7 +2092,7 @@ const HealthCheckScreen = ({ navigation }) => {
     </TouchableOpacity>
   </View>
 )}
-      {schedule.status === "CANCELLED" && (
+      {schedule.status === "Cancelled" && (
         <View style={styles.scheduleActions}>
           <TouchableOpacity
             style={[styles.cancelButton, { backgroundColor: colors.error }]}
