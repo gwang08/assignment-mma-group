@@ -121,154 +121,140 @@ const HealthCheckScreen = ({ navigation }) => {
   });
 
   const loadConsultationCandidates = async (campaign) => {
-    try {
-      console.log(
-        "Loading consultation candidates for campaign:",
-        campaign._id
-      );
+  try {
+    console.log("Loading consultation candidates for campaign:", campaign._id);
 
-      // Lấy kết quả chiến dịch
-      const resultResponse = await nurseAPI.getCampaignResults(campaign._id);
-      console.log(
-        "getCampaignResults:",
-        JSON.stringify(resultResponse, null, 2)
-      );
-      if (!resultResponse.success || !Array.isArray(resultResponse.data)) {
-        Alert.alert("Lỗi", "Không thể tải kết quả khám");
-        return [];
-      }
-
-      // Lấy danh sách lịch tư vấn
-      const consultationResponse = await nurseAPI.getConsultationSchedules();
-      console.log(
-        "getConsultationSchedules:",
-        JSON.stringify(consultationResponse, null, 2)
-      );
-      const consultationData = Array.isArray(consultationResponse)
-        ? { success: true, data: consultationResponse }
-        : consultationResponse;
-      if (!consultationData.success || !Array.isArray(consultationData.data)) {
-        Alert.alert("Lỗi", "Không thể tải danh sách lịch tư vấn");
-        return [];
-      }
-
-      // Lấy quan hệ học sinh-phụ huynh
-      const relationsResponse = await nurseAPI.getStudentParentRelations();
-      console.log(
-        "getStudentParentRelations:",
-        JSON.stringify(relationsResponse, null, 2)
-      );
-      if (
-        !relationsResponse.success ||
-        !Array.isArray(relationsResponse.data)
-      ) {
-        Alert.alert("Lỗi", "Không thể tải danh sách quan hệ phụ huynh");
-        return [];
-      }
-
-      // Lấy danh sách học sinh
-      const studentResponse = await nurseAPI.getStudents();
-      console.log("getStudents:", JSON.stringify(studentResponse, null, 2));
-      if (!studentResponse.success || !Array.isArray(studentResponse.data)) {
-        Alert.alert("Lỗi", "Không thể tải danh sách học sinh");
-        return [];
-      }
-
-      // Tạo map quan hệ học sinh-phụ huynh
-      const studentParentMap = relationsResponse.data.reduce(
-        (map, relation) => {
-          // Kiểm tra relation.student và relation.parent
-          if (!relation.student || !relation.parent) {
-            console.warn("Invalid relation data:", relation);
-            return map;
-          }
-          const studentId =
-            typeof relation.student === "object" && relation.student?._id
-              ? relation.student._id
-              : relation.student;
-          const parentId =
-            typeof relation.parent === "object" && relation.parent?._id
-              ? relation.parent._id
-              : relation.parent;
-          const parentName =
-            relation.parent &&
-            relation.parent.first_name &&
-            relation.parent.last_name
-              ? `${relation.parent.first_name} ${relation.parent.last_name}`
-              : "Không xác định";
-          map[studentId] = { parentId, parentName };
-          return map;
-        },
-        {}
-      );
-
-      // Tạo danh sách học sinh đã có lịch tư vấn
-      const studentsWithConsultations = consultationData.data.reduce(
-        (set, consultation) => {
-          // Kiểm tra consultation.student
-          if (!consultation.student) {
-            console.warn("Invalid consultation data:", consultation);
-            return set;
-          }
-          const studentId =
-            typeof consultation.student === "object" &&
-            consultation.student?._id
-              ? consultation.student._id
-              : consultation.student;
-          set.add(studentId);
-          return set;
-        },
-        new Set()
-      );
-
-      // Lọc kết quả bất thường chưa có lịch tư vấn
-      const unscheduledAbnormalResults = resultResponse.data
-        .filter((result) => result.checkupDetails?.requiresConsultation)
-        .filter((result) => {
-          // Kiểm tra result.student
-          if (!result.student) {
-            console.warn("Invalid result data:", result);
-            return false;
-          }
-          const studentId =
-            typeof result.student === "object" && result.student?._id
-              ? result.student._id
-              : result.student;
-          return !studentsWithConsultations.has(studentId);
-        })
-        .map((result) => {
-          const studentId =
-            typeof result.student === "object" && result.student?._id
-              ? result.student._id
-              : result.student;
-          const student = studentResponse.data.find((s) => s._id === studentId);
-          return {
-            resultId: result._id,
-            studentId,
-            studentName: student
-              ? `${student.first_name} ${student.last_name}`
-              : "Không xác định",
-            className: student?.class_name || "Không xác định",
-            parentId: studentParentMap[studentId]?.parentId || null,
-            parentName:
-              studentParentMap[studentId]?.parentName || "Không xác định",
-            reason:
-              result.checkupDetails.recommendations || "Cần tư vấn sức khỏe",
-          };
-        })
-        .filter((candidate) => candidate.parentId); // Chỉ giữ các ứng viên có parentId
-
-      console.log(
-        "Unscheduled abnormal results:",
-        JSON.stringify(unscheduledAbnormalResults, null, 2)
-      );
-      return unscheduledAbnormalResults;
-    } catch (error) {
-      console.error("Error loading consultation candidates:", error);
-      Alert.alert("Lỗi", "Có lỗi khi tải danh sách học sinh cần tư vấn");
+    // Lấy kết quả chiến dịch
+    const resultResponse = await nurseAPI.getCampaignResults(campaign._id);
+    console.log("getCampaignResults:", JSON.stringify(resultResponse, null, 2));
+    if (!resultResponse.success || !Array.isArray(resultResponse.data)) {
+      Alert.alert("Lỗi", "Không thể tải kết quả khám");
       return [];
     }
-  };
+
+    // Lấy danh sách lịch tư vấn
+    const consultationResponse = await nurseAPI.getConsultationSchedules();
+    console.log(
+      "getConsultationSchedules:",
+      JSON.stringify(consultationResponse, null, 2)
+    );
+    const consultationData = Array.isArray(consultationResponse)
+      ? { success: true, data: consultationResponse }
+      : consultationResponse;
+    if (!consultationData.success || !Array.isArray(consultationData.data)) {
+      Alert.alert("Lỗi", "Không thể tải danh sách lịch tư vấn");
+      return [];
+    }
+
+    // Lấy quan hệ học sinh-phụ huynh
+    const relationsResponse = await nurseAPI.getStudentParentRelations();
+    console.log(
+      "getStudentParentRelations:",
+      JSON.stringify(relationsResponse, null, 2)
+    );
+    if (!relationsResponse.success || !Array.isArray(relationsResponse.data)) {
+      Alert.alert("Lỗi", "Không thể tải danh sách quan hệ phụ huynh");
+      return [];
+    }
+
+    // Lấy danh sách học sinh
+    const studentResponse = await nurseAPI.getStudents();
+    console.log("getStudents:", JSON.stringify(studentResponse, null, 2));
+    if (!studentResponse.success || !Array.isArray(studentResponse.data)) {
+      Alert.alert("Lỗi", "Không thể tải danh sách học sinh");
+      return [];
+    }
+
+    // Tạo map quan hệ học sinh-phụ huynh
+    const studentParentMap = relationsResponse.data.reduce((map, relation) => {
+      // Kiểm tra tính hợp lệ của quan hệ
+      if (!relation.student || !relation.parent) {
+        console.warn("Invalid relation data:", relation);
+        return map;
+      }
+      const studentId =
+        typeof relation.student === "object" && relation.student?._id
+          ? relation.student._id
+          : relation.student;
+      const parentId =
+        typeof relation.parent === "object" && relation.parent?._id
+          ? relation.parent._id
+          : relation.parent;
+      const parentName =
+        relation.parent &&
+        relation.parent.first_name &&
+        relation.parent.last_name
+          ? `${relation.parent.first_name} ${relation.parent.last_name}`
+          : "Không xác định";
+      map[studentId] = { parentId, parentName };
+      return map;
+    }, {});
+
+    // Ghi log số lượng quan hệ hợp lệ
+    console.log("Valid student-parent relations:", Object.keys(studentParentMap).length);
+
+    // Tạo danh sách học sinh đã có lịch tư vấn
+    const studentsWithConsultations = consultationData.data.reduce((set, consultation) => {
+      if (!consultation.student) {
+        console.warn("Invalid consultation data:", consultation);
+        return set;
+      }
+      const studentId =
+        typeof consultation.student === "object" && consultation.student?._id
+          ? consultation.student._id
+          : consultation.student;
+      set.add(studentId);
+      return set;
+    }, new Set());
+
+    // Lọc kết quả bất thường chưa có lịch tư vấn
+    const unscheduledAbnormalResults = resultResponse.data
+      .filter((result) => result.checkupDetails?.requiresConsultation)
+      .filter((result) => {
+        if (!result.student) {
+          console.warn("Invalid result data:", result);
+          return false;
+        }
+        const studentId =
+          typeof result.student === "object" && result.student?._id
+            ? result.student._id
+            : result.student;
+        return !studentsWithConsultations.has(studentId);
+      })
+      .map((result) => {
+        const studentId =
+          typeof result.student === "object" && result.student?._id
+            ? result.student._id
+            : result.student;
+        const student = studentResponse.data.find((s) => s._id === studentId);
+        return {
+          resultId: result._id,
+          studentId,
+          studentName: student
+            ? `${student.first_name} ${student.last_name}`
+            : "Không xác định",
+          className: student?.class_name || "Không xác định",
+          parentId: studentParentMap[studentId]?.parentId || null,
+          parentName: studentParentMap[studentId]?.parentName || "Không xác định",
+          reason: result.checkupDetails.recommendations || "Cần tư vấn sức khỏe",
+        };
+      })
+      .filter((candidate) => candidate.parentId); // Chỉ giữ các ứng viên có parentId
+
+    console.log(
+      "Unscheduled abnormal results:",
+      JSON.stringify(unscheduledAbnormalResults, null, 2)
+    );
+    if (unscheduledAbnormalResults.length === 0) {
+      console.warn("No consultation candidates found. Possible reasons: no abnormal results, all results scheduled, or invalid relations.");
+    }
+    return unscheduledAbnormalResults;
+  } catch (error) {
+    console.error("Error loading consultation candidates:", error);
+    Alert.alert("Lỗi", "Có lỗi khi tải danh sách học sinh cần tư vấn");
+    return [];
+  }
+};
 
   const checkForOverlappingConsultations = async (
     scheduledDate,
@@ -449,73 +435,75 @@ const HealthCheckScreen = ({ navigation }) => {
   };
 
   const handleViewConsultationSchedules = async (campaign) => {
-    try {
-      console.log("Loading consultation schedules for campaign:", campaign._id);
-      const response = await nurseAPI.getConsultationSchedules();
-      console.log(
-        "API Response getConsultationSchedules:",
-        JSON.stringify(response, null, 2)
-      );
-      if (response.success && Array.isArray(response.data)) {
-        const filteredSchedules = response.data
-          .filter((schedule) => {
-            const campaignId =
-              typeof schedule.campaignResult === "object"
-                ? schedule.campaignResult.campaign
-                : schedule.campaignResult;
-            return campaignId === campaign._id;
-          })
-          .map((schedule) => ({
+  try {
+    console.log("Loading consultation schedules for campaign:", campaign._id);
+    const response = await nurseAPI.getConsultationSchedules();
+    console.log(
+      "API Response getConsultationSchedules:",
+      JSON.stringify(response, null, 2)
+    );
+    if (response.success && Array.isArray(response.data)) {
+      const filteredSchedules = response.data
+        .filter((schedule) => {
+          if (!schedule.campaignResult) {
+            console.warn("Skipping schedule with null campaignResult:", schedule);
+            return false;
+          }
+          const campaignId =
+            typeof schedule.campaignResult === "object" &&
+            schedule.campaignResult.campaign
+              ? schedule.campaignResult.campaign
+              : schedule.campaignResult;
+          return campaignId === campaign._id;
+        })
+        .map((schedule) => {
+          const studentId =
+            typeof schedule.student === "object" && schedule.student?._id
+              ? schedule.student._id
+              : schedule.student;
+          const student = students.find((s) => s._id === studentId);
+          return {
             ...schedule,
             status: schedule.status || "SCHEDULED",
-            studentName:
-              students.find(
-                (s) =>
-                  s._id ===
-                  (typeof schedule.student === "object"
-                    ? schedule.student._id
-                    : schedule.student)
-              )?.first_name +
-                " " +
-                students.find(
-                  (s) =>
-                    s._id ===
-                    (typeof schedule.student === "object"
-                      ? schedule.student._id
-                      : schedule.student)
-                )?.last_name || "Không xác định",
+            studentName: student
+              ? `${student.first_name} ${student.last_name}`
+              : "Không xác định",
             parentName: schedule.attending_parent
               ? `${schedule.attending_parent.first_name || ""} ${
                   schedule.attending_parent.last_name || ""
                 }`
               : "Không xác định",
-          }));
-        console.log(
-          "Filtered schedules:",
-          JSON.stringify(filteredSchedules, null, 2)
-        );
-        setConsultationSchedules(filteredSchedules);
-        setSelectedCampaignForConsultation(campaign);
-        setIsConsultationModalVisible(true);
-        const candidates = await loadConsultationCandidates(campaign);
-        console.log(
-          "Consultation candidates:",
-          JSON.stringify(candidates, null, 2)
-        );
-        setConsultationCandidates(candidates);
-      } else {
-        Alert.alert("Lỗi", "Không thể tải danh sách lịch tư vấn");
-        setConsultationSchedules([]);
-      }
-    } catch (error) {
-      console.error("Error loading consultation schedules:", error);
-      Alert.alert(
-        "Lỗi",
-        error.message || "Có lỗi khi tải danh sách lịch tư vấn"
+          };
+        });
+      console.log(
+        "Filtered schedules:",
+        JSON.stringify(filteredSchedules, null, 2)
       );
+      setConsultationSchedules(filteredSchedules);
+      setSelectedCampaignForConsultation(campaign);
+      setIsConsultationModalVisible(true);
+      const candidates = await loadConsultationCandidates(campaign);
+      console.log(
+        "Consultation candidates:",
+        JSON.stringify(candidates, null, 2)
+      );
+      setConsultationCandidates(candidates);
+      if (filteredSchedules.length === 0 && candidates.length === 0) {
+        Alert.alert("Thông báo", "Không có lịch tư vấn hoặc học sinh cần tư vấn");
+      }
+    } else {
+      Alert.alert("Lỗi", "Không thể tải danh sách lịch tư vấn");
       setConsultationSchedules([]);
     }
-  };
+  } catch (error) {
+    console.error("Error loading consultation schedules:", error);
+    Alert.alert(
+      "Lỗi",
+      error.message || "Có lỗi khi tải danh sách lịch tư vấn"
+    );
+    setConsultationSchedules([]);
+  }
+};
 
   const handleCompleteConsultation = async (consultationId) => {
     try {
@@ -568,25 +556,28 @@ const HealthCheckScreen = ({ navigation }) => {
   const dateRange = watch("date_range");
 
   const getStatusText = (status, startDate, endDate) => {
-    switch (status) {
-      case "draft":
-        return "Bản nháp";
-      case "active":
-        if (
-          moment().isSameOrAfter(moment(startDate)) &&
-          moment().isSameOrBefore(moment(endDate))
-        ) {
-          return "Đang diễn ra";
-        }
-        return "Đã kết thúc";
-      case "completed":
-        return "Đã hoàn thành";
-      case "cancelled":
-        return "Hủy";
-      default:
-        return "Không xác định";
-    }
-  };
+  const now = moment();
+  const start = moment(startDate);
+  const end = moment(endDate);
+  switch (status) {
+    case "draft":
+      if (now.isAfter(end)) {
+        return "Bản nháp (Hết hạn)";
+      }
+      return "Bản nháp";
+    case "active":
+      if (now.isSameOrAfter(start) && now.isSameOrBefore(end)) {
+        return "Đang diễn ra";
+      }
+      return "Đã kết thúc";
+    case "completed":
+      return "Đã hoàn thành";
+    case "cancelled":
+      return "Hủy";
+    default:
+      return "Không xác định";
+  }
+};
 
   const loadCampaigns = async () => {
     try {

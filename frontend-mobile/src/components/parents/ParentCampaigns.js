@@ -263,8 +263,9 @@ const ParentCampaigns = () => {
         Alert.alert("Lỗi", response.message || "Có lỗi xảy ra");
       }
     } catch (error) {
-      Alert.alert("Lỗi", "Có lỗi xảy ra khi gửi phản hồi");
-    } finally {
+  console.log("Submit consent error:", error.response?.data || error.message);
+  Alert.alert("Lỗi", error.response?.data?.message || "Có lỗi xảy ra khi gửi phản hồi");
+} finally {
       setSubmittingConsent(false);
     }
   };
