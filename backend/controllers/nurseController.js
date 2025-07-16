@@ -721,40 +721,40 @@ class NurseController {
   }
 
   static async updateVaccinationFollowUp(req, res, next) {
-    try {
-      const { resultId } = req.params;
-      const { follow_up_date, follow_up_notes, status, additional_actions } =
-        req.body;
+  try {
+    const { resultId } = req.params;
+    const { follow_up_date, follow_up_notes, status, additional_actions } = req.body;
 
-      const result = await CampaignResult.findById(resultId);
-      if (!result) {
-        return res.status(404).json({ error: "Vaccination result not found" });
-      }
-
-      // Update follow-up information
-      result.vaccination_details.follow_up_date =
-        follow_up_date && new Date(follow_up_date);
-      result.vaccination_details.follow_up_notes =
-        follow_up_notes || result.vaccination_details.follow_up_notes;
-      result.vaccination_details.status =
-        status || result.vaccination_details.status;
-      result.vaccination_details.additional_actions =
-        additional_actions || result.vaccination_details.additional_actions;
-      result.vaccination_details.last_follow_up = new Date();
-
-      await result.save();
-      await result.populate("student", "first_name last_name class_name");
-
-      res.json({
-        success: true,
-        data: result,
-        message: "Follow-up updated successfully",
-      });
-    } catch (error) {
-      console.error("Error updating vaccination follow-up:", error);
-      res.status(400).json({ error: "Failed to update vaccination follow-up" });
+    // Kiểm tra định dạng follow_up_date
+    if (follow_up_date && isNaN(new Date(follow_up_date).getTime())) {
+      return res.status(400).json({ error: "Invalid follow_up_date format" });
     }
+
+    const result = await CampaignResult.findById(resultId);
+    if (!result) {
+      return res.status(404).json({ error: "Vaccination result not found" });
+    }
+
+    // Update follow-up information
+    result.vaccination_details.follow_up_date = follow_up_date ? new Date(follow_up_date) : result.vaccination_details.follow_up_date;
+    result.vaccination_details.follow_up_notes = follow_up_notes || result.vaccination_details.follow_up_notes;
+    result.vaccination_details.status = status || result.vaccination_details.status;
+    result.vaccination_details.additional_actions = additional_actions || result.vaccination_details.additional_actions;
+    result.vaccination_details.last_follow_up = new Date();
+
+    await result.save();
+    await result.populate("student", "first_name last_name class_name");
+
+    res.json({
+      success: true,
+      data: result,
+      message: "Follow-up updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating vaccination follow-up:", error);
+    res.status(400).json({ error: error.message || "Failed to update vaccination follow-up" });
   }
+}
 
   static async getVaccinationStatistics(req, res, next) {
     try {

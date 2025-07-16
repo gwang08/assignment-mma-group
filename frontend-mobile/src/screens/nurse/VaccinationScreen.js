@@ -40,6 +40,15 @@ const SIDE_EFFECTS_ENUM = [
   { value: "other", label: "Khác" },
 ];
 
+const ACTION_LABELS = {
+  medication: "Dùng thuốc",
+  rest: "Nghỉ ngơi",
+  hospital_referral: "Chuyển viện",
+  parent_contact: "Liên hệ phụ huynh",
+  continue_monitoring: "Tiếp tục theo dõi",
+  other: "Khác",
+};
+
 const VaccinationScreen = ({ navigation }) => {
   const [campaigns, setCampaigns] = useState([]);
   const [students, setStudents] = useState([]);
@@ -68,10 +77,12 @@ const VaccinationScreen = ({ navigation }) => {
     additional_actions: [],
     follow_up_notes: "",
   });
+  
 
   const handleOpenFollowUpModal = (student, record) => {
   setCurrentStudent(student);
   setVaccinationData({
+    _id: record._id || "", // Đảm bảo _id được lấy từ record
     vaccinated_at: new Date(record.vaccination_details?.vaccinated_at || new Date()),
     vaccine_brand: record.vaccination_details?.vaccine_details?.brand || "",
     batch_number: record.vaccination_details?.vaccine_details?.batch_number || "",
@@ -90,43 +101,71 @@ const VaccinationScreen = ({ navigation }) => {
     additional_actions: record.vaccination_details?.additional_actions || [],
     follow_up_notes: record.vaccination_details?.follow_up_notes || "",
   });
+  console.log("Vaccination record in handleOpenFollowUpModal:", JSON.stringify({
+    recordId: record._id,
+    studentId: student._id,
+    record
+  }, null, 2));
   setFollowUpModalVisible(true);
 };
 
+
   const handleFollowUp = async () => {
-    if (!currentStudent || !vaccinationData) {
-      Alert.alert("Lỗi", "Vui lòng chọn học sinh và chiến dịch");
-      return;
-    }
+  if (!currentStudent || !vaccinationData || !selectedCampaignDetails) {
+    Alert.alert("Lỗi", "Vui lòng chọn học sinh và chiến dịch");
+    return;
+  }
 
-    const payload = {
-      student_id: currentStudent._id,
-      vaccination_id: vaccinationData._id,
-      follow_up_date: followUpData.follow_up_date,
-      status: followUpData.status,
-      additional_actions: followUpData.additional_actions,
-      follow_up_notes: followUpData.follow_up_notes,
-    };
+  const vaccinationRecord = vaccinationList?.vaccination_results?.find(
+    (v) => v.student._id === currentStudent._id
+  );
 
-    try {
-      await nurseAPI.updateVaccinationFollowUp(
-        selectedCampaignDetails._id,
-        payload
-      );
-      Alert.alert("Thành công", "Đã cập nhật thông tin theo dõi");
-      setFollowUpModalVisible(false);
-      setFollowUpData({
-        follow_up_date: new Date(),
-        status: "normal",
-        additional_actions: [],
-        follow_up_notes: "",
-      });
-      await handleViewCampaign(selectedCampaignDetails, "viewList"); // Tải lại danh sách
-    } catch (error) {
-      console.error("Error updating follow-up:", error);
-      Alert.alert("Lỗi", "Không thể cập nhật thông tin theo dõi");
-    }
+  if (!vaccinationRecord) {
+    console.error("No vaccination record found for student:", currentStudent?._id);
+    Alert.alert("Lỗi", "Không tìm thấy bản ghi kết quả tiêm chủng cho học sinh này");
+    return;
+  }
+
+  if (!vaccinationRecord._id) {
+    console.error("vaccinationRecord missing _id:", vaccinationRecord);
+    Alert.alert("Lỗi", "Bản ghi kết quả tiêm chủng không có ID hợp lệ");
+    return;
+  }
+
+  const payload = {
+    follow_up_date: followUpData.follow_up_date.toISOString(), // Chuyển Date thành chuỗi ISO
+    status: followUpData.status,
+    additional_actions: followUpData.additional_actions,
+    follow_up_notes: followUpData.follow_up_notes,
   };
+
+  console.log("Submitting follow-up payload:", JSON.stringify(payload, null, 2));
+  console.log("resultId:", vaccinationRecord._id);
+
+  try {
+    const response = await nurseAPI.updateVaccinationFollowUp(
+      vaccinationRecord._id,
+      payload
+    );
+    console.log("Follow-up update response:", JSON.stringify(response, null, 2));
+    Alert.alert("Thành công", "Đã cập nhật thông tin theo dõi");
+    setFollowUpModalVisible(false);
+    setFollowUpData({
+      follow_up_date: new Date(),
+      status: "normal",
+      additional_actions: [],
+      follow_up_notes: "",
+    });
+    await handleViewCampaign(selectedCampaignDetails, "viewList");
+  } catch (error) {
+    console.error("Error updating follow-up:", error);
+    console.error("Error details:", JSON.stringify(error.response?.data, null, 2));
+    Alert.alert(
+      "Lỗi",
+      error.response?.data?.error || "Không thể cập nhật thông tin theo dõi"
+    );
+  }
+};
 
   const handleActionToggle = (action) => {
     setFollowUpData((prev) => ({
@@ -247,6 +286,8 @@ const VaccinationScreen = ({ navigation }) => {
       );
       return;
     }
+
+    
 
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
@@ -575,19 +616,21 @@ vaccine_dosage: vaccineDetails.dosage,
       ]);
       console.log("Vaccination Response:", JSON.stringify(vaccinationResponse.data, null, 2));
       console.log("Medical Staff Response:", JSON.stringify(medicalStaffResponse.data, null, 2));
-      setVaccinationList(
-        vaccinationResponse.data || {
-          campaign: campaign,
-          eligible_students: [],
-          vaccinated_students: [],
-          pending_students: [],
-          consent_summary: { total: 0, approved: 0, declined: 0, pending: 0 },
-        }
-      );
+      const vaccinationData = vaccinationResponse.data || {
+        campaign: campaign,
+        eligible_students: [],
+        vaccinated_students: [],
+        pending_students: [],
+        consent_summary: { total: 0, approved: 0, declined: 0, pending: 0 },
+        vaccination_results: [],
+      };
+      console.log("Processed vaccinationList:", JSON.stringify(vaccinationData, null, 2));
+      setVaccinationList(vaccinationData);
       setMedicalStaff(medicalStaffResponse.data || []);
       setListModalVisible(true);
     } catch (error) {
       console.error("Error loading vaccination list:", error);
+      console.error("Error details:", JSON.stringify(error.response?.data, null, 2));
       Alert.alert("Lỗi", "Không thể tải danh sách tiêm chủng");
     }
   } else {
@@ -597,7 +640,7 @@ vaccine_dosage: vaccineDetails.dosage,
 
   const handleOpenRecordModal = (student) => {
   setCurrentStudent(student);
-  const vaccinationRecord = vaccinationList?.vaccinated_students?.find(
+  const vaccinationRecord = vaccinationList?.vaccination_results?.find(
     (v) => v.student._id === student._id
   );
 
@@ -640,6 +683,15 @@ vaccine_dosage: vaccineDetails.dosage,
     return;
   }
 
+  if (!vaccinationData.vaccine_brand || !vaccinationData.batch_number || !vaccinationData.administered_by) {
+    Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin bắt buộc (Tên vaccine, Số lô, Người tiêm)");
+    return;
+  }
+  if (vaccinationData.follow_up_required && !vaccinationData.follow_up_date) {
+    Alert.alert("Lỗi", "Vui lòng chọn ngày hạn sử dụng vaccine khi cần theo dõi sau tiêm");
+    return;
+  }
+
   if (moment().isAfter(moment(selectedCampaignDetails.consent_deadline))) {
     Alert.alert(
       "Lỗi",
@@ -648,7 +700,7 @@ vaccine_dosage: vaccineDetails.dosage,
     return;
   }
 
-  const existingRecord = vaccinationList?.vaccinated_students?.find(
+  const existingRecord = vaccinationList?.vaccination_results?.find(
     (record) => record.student._id === currentStudent._id
   );
   if (existingRecord) {
@@ -688,18 +740,46 @@ vaccine_dosage: vaccineDetails.dosage,
     );
     console.log("Vaccination record response:", JSON.stringify(response.data, null, 2));
 
-    // Tải lại danh sách từ API
-    const vaccinationResponse = await nurseAPI.getVaccinationList(selectedCampaignDetails._id);
-    console.log("Updated Vaccination List:", JSON.stringify(vaccinationResponse.data, null, 2));
-    setVaccinationList(
-      vaccinationResponse.data || {
-        campaign: selectedCampaignDetails,
-        eligible_students: [],
-        vaccinated_students: [],
-        pending_students: [],
-        consent_summary: { total: 0, approved: 0, declined: 0, pending: 0 },
-      }
-    );
+    // Cập nhật vaccinationList ngay lập tức
+    setVaccinationList((prev) => ({
+      ...prev,
+      vaccination_results: [
+        ...(prev.vaccination_results || []),
+        {
+          student: currentStudent,
+          vaccination_details: {
+            vaccinated_at: vaccinationData.vaccinated_at,
+            vaccine_details: {
+              brand: vaccinationData.vaccine_brand,
+              batch_number: vaccinationData.batch_number,
+              dose_number: parseInt(vaccinationData.dose_number),
+              expiry_date: vaccinationData.follow_up_date || new Date(),
+            },
+            administered_by: vaccinationData.administered_by,
+            side_effects: vaccinationData.side_effects,
+            follow_up_required: vaccinationData.follow_up_required,
+            follow_up_date: vaccinationData.follow_up_required
+              ? vaccinationData.follow_up_date
+              : null,
+            notes: vaccinationData.notes,
+          },
+          created_by: response.data.created_by,
+          createdAt: response.data.createdAt,
+          updatedAt: response.data.updatedAt,
+          _id: response.data._id,
+          campaign: selectedCampaignDetails._id,
+          notes: vaccinationData.notes,
+        },
+      ],
+      pending_students: prev.pending_students?.filter(
+        (student) => student._id !== currentStudent._id
+      ) || [],
+      statistics: {
+        ...prev.statistics,
+        vaccinated: (prev.statistics?.vaccinated || 0) + 1,
+        pending: (prev.statistics?.pending || 0) - 1,
+      },
+    }));
 
     Alert.alert("Thành công", "Đã ghi nhận kết quả tiêm chủng");
     setRecordModalVisible(false);
@@ -715,6 +795,27 @@ vaccine_dosage: vaccineDetails.dosage,
       notes: "",
     });
     setCurrentStudent(null);
+
+    // Tải lại danh sách từ API để đồng bộ (chạy bất đồng bộ)
+    setTimeout(async () => {
+      try {
+        const vaccinationResponse = await nurseAPI.getVaccinationList(selectedCampaignDetails._id);
+        console.log("Updated Vaccination List:", JSON.stringify(vaccinationResponse.data, null, 2));
+        setVaccinationList(
+          vaccinationResponse.data || {
+            campaign: selectedCampaignDetails,
+            eligible_students: [],
+            vaccination_results: [],
+            pending_students: [],
+            consents: [],
+            consent_summary: { total: 0, approved: 0, declined: 0, pending: 0 },
+            statistics: { total_eligible: 0, vaccinated: 0, pending: 0 },
+          }
+        );
+      } catch (error) {
+        console.error("Error refreshing vaccination list:", error);
+      }
+    }, 1000);
   } catch (error) {
     console.error("Error recording vaccination:", error);
     console.error("Error details:", error.response?.data);
@@ -1631,14 +1732,16 @@ vaccine_dosage: vaccineDetails.dosage,
                 </Text>
               </View>
             )}
-         <FlatList
+        <FlatList
   data={vaccinationList?.eligible_students || []}
   keyExtractor={(item) => item._id}
+  extraData={vaccinationList}
+  key={vaccinationList?.vaccination_results?.length || 0} // Sử dụng vaccination_results.length để ép render lại
   renderItem={({ item }) => {
     const consent = vaccinationList.consents?.find(
       (c) => c.student._id === item._id
     );
-    const vaccinationRecord = vaccinationList.vaccinated_students?.find(
+    const vaccinationRecord = vaccinationList?.vaccination_results?.find(
       (v) => v.student._id === item._id
     );
     const consentDeadlinePassed = selectedCampaignDetails?.consent_deadline
@@ -1651,7 +1754,7 @@ vaccine_dosage: vaccineDetails.dosage,
     const isFollowUpCompleted = hasFollowUpNotes && lastFollowUp;
     const needsFollowUp = followUpRequired && !isFollowUpCompleted;
 
-    console.log(`Student ID: ${item._id}, Vaccination Record:`, JSON.stringify(vaccinationRecord, null, 2));
+    console.log(`Student ${item._id} - Has vaccination record: ${!!vaccinationRecord}`);
 
     return (
       <View style={styles.studentItem}>
@@ -1678,18 +1781,16 @@ vaccine_dosage: vaccineDetails.dosage,
           </Text>
           {vaccinationRecord && (
             <View>
-             <Text style={styles.vaccinationDetail}>
-  Vaccine: {vaccinationRecord.vaccination_details?.vaccine_details?.brand || 
-            vaccinationRecord.vaccine_details?.brand || 
-            selectedCampaignDetails?.vaccineDetails?.brand || 
-            "Không có thông tin"}
-</Text>
-<Text style={styles.vaccinationDetail}>
-  Mũi số: {vaccinationRecord.vaccination_details?.vaccine_details?.dose_number || 
-           vaccinationRecord.vaccine_details?.dose_number || 
-           vaccinationData?.dose_number || 
-           "Không có thông tin"}
-</Text>
+              <Text style={styles.vaccinationDetail}>
+                Vaccine: {vaccinationRecord.vaccination_details?.vaccine_details?.brand || 
+                          selectedCampaignDetails?.vaccineDetails?.brand || 
+                          "Không có thông tin"}
+              </Text>
+              <Text style={styles.vaccinationDetail}>
+                Mũi số: {vaccinationRecord.vaccination_details?.vaccine_details?.dose_number || 
+                         vaccinationData?.dose_number || 
+                         "Không có thông tin"}
+              </Text>
             </View>
           )}
         </View>
@@ -1711,7 +1812,19 @@ vaccine_dosage: vaccineDetails.dosage,
               style={styles.actionButton}
               onPress={() => {
                 setCurrentStudent(item);
-                setVaccinationData(vaccinationRecord);
+                setVaccinationData({
+                  vaccinated_at: new Date(vaccinationRecord.vaccination_details?.vaccinated_at || new Date()),
+                  vaccine_brand: vaccinationRecord.vaccination_details?.vaccine_details?.brand || "",
+                  batch_number: vaccinationRecord.vaccination_details?.vaccine_details?.batch_number || "",
+                  dose_number: vaccinationRecord.vaccination_details?.vaccine_details?.dose_number?.toString() || "1",
+                  administered_by: vaccinationRecord.vaccination_details?.administered_by || "",
+                  side_effects: vaccinationRecord.vaccination_details?.side_effects || [],
+                  follow_up_required: !!vaccinationRecord.vaccination_details?.follow_up_required,
+                  follow_up_date: vaccinationRecord.vaccination_details?.follow_up_date
+                    ? new Date(vaccinationRecord.vaccination_details.follow_up_date)
+                    : null,
+                  notes: vaccinationRecord.vaccination_details?.notes || "",
+                });
                 setRecordModalVisible(true);
               }}
             >
@@ -1742,7 +1855,7 @@ vaccine_dosage: vaccineDetails.dosage,
   <SafeAreaView style={styles.modalContainer}>
     <View style={styles.modalHeader}>
       <Text style={styles.modalTitle}>
-        {vaccinationList?.vaccinated_students?.find(
+        {vaccinationList?.vaccination_results?.find(
           (v) => v.student._id === currentStudent?._id
         )
           ? "Chi tiết kết quả tiêm chủng"
@@ -1756,296 +1869,374 @@ vaccine_dosage: vaccineDetails.dosage,
       <Text style={styles.studentInfo}>
         Học sinh: {currentStudent?.first_name} {currentStudent?.last_name} - Lớp: {currentStudent?.class_name}
       </Text>
-      <Text style={styles.label}>Thời gian tiêm</Text>
-      <TouchableOpacity
-        onPress={() => setShowDatePicker(true)}
-        disabled={!!vaccinationList?.vaccinated_students?.find(
-          (v) => v.student._id === currentStudent?._id
-        )}
-      >
-        <Text style={styles.input}>
-          {vaccinationData?.vaccinated_at
-            ? moment(vaccinationData.vaccinated_at).format("DD/MM/YYYY")
-            : "Chọn ngày"}
-        </Text>
-      </TouchableOpacity>
-      {showDatePicker && (
-        <DateTimePicker
-          value={vaccinationData?.vaccinated_at || new Date()}
-          mode="date"
-          onChange={(event, date) => {
-            setShowDatePicker(false);
-            if (date) {
-              setVaccinationData({
-                ...vaccinationData,
-                vaccinated_at: date,
-              });
-            }
-          }}
-        />
-      )}
-      <Text style={styles.label}>Người tiêm</Text>
-      <Picker
-        selectedValue={vaccinationData?.administered_by || ""}
-        onValueChange={(value) =>
-          setVaccinationData({
-            ...vaccinationData,
-            administered_by: value,
-          })
-        }
-        style={styles.picker}
-        enabled={!!vaccinationList?.vaccinated_students?.find(
-          (v) => v.student._id === currentStudent?._id
-        ) === false}
-      >
-        <Picker.Item label="Chọn người tiêm" value="" />
-        {medicalStaff.map((staff) => (
-          <Picker.Item
-            key={staff._id}
-            label={`${staff.last_name} ${staff.first_name}`}
-            value={`${staff.last_name} ${staff.first_name}`}
-          />
-        ))}
-      </Picker>
-      <Text style={styles.label}>Tên vaccine</Text>
-      <TextInput
-        style={styles.input}
-        value={vaccinationData?.vaccine_brand || ""}
-        onChangeText={(text) =>
-          setVaccinationData({ ...vaccinationData, vaccine_brand: text })
-        }
-        placeholder="VD: Gardasil 9"
-        editable={!!vaccinationList?.vaccinated_students?.find(
-          (v) => v.student._id === currentStudent?._id
-        ) === false}
-      />
-      <Text style={styles.label}>Số lô</Text>
-      <TextInput
-        style={styles.input}
-        value={vaccinationData?.batch_number || ""}
-        onChangeText={(text) =>
-          setVaccinationData({ ...vaccinationData, batch_number: text })
-        }
-        placeholder="VD: LOT001"
-        editable={!!vaccinationList?.vaccinated_students?.find(
-          (v) => v.student._id === currentStudent?._id
-        ) === false}
-      />
-      <Text style={styles.label}>Mũi số</Text>
-      <Picker
-        selectedValue={vaccinationData?.dose_number || "1"}
-        onValueChange={(value) =>
-          setVaccinationData({ ...vaccinationData, dose_number: value })
-        }
-        style={styles.picker}
-        enabled={!!vaccinationList?.vaccinated_students?.find(
-          (v) => v.student._id === currentStudent?._id
-        ) === false}
-      >
-        <Picker.Item label="Mũi 1" value="1" />
-        <Picker.Item label="Mũi 2" value="2" />
-        <Picker.Item label="Mũi 3" value="3" />
-        <Picker.Item label="Mũi nhắc lại" value="4" />
-      </Picker>
-      <Text style={styles.label}>Hạn sử dụng vaccine</Text>
-      <TouchableOpacity
-        onPress={() => setShowExpiryDatePicker(true)}
-        disabled={!!vaccinationList?.vaccinated_students?.find(
-          (v) => v.student._id === currentStudent?._id
-        )}
-      >
-        <Text style={styles.input}>
-          {vaccinationData?.follow_up_date
-            ? moment(vaccinationData.follow_up_date).format("DD/MM/YYYY")
-            : "Chọn ngày"}
-        </Text>
-      </TouchableOpacity>
-      {showExpiryDatePicker && (
-        <DateTimePicker
-          value={vaccinationData?.follow_up_date || new Date()}
-          mode="date"
-          onChange={(event, date) => {
-            setShowExpiryDatePicker(false);
-            if (date) {
-              setVaccinationData({
-                ...vaccinationData,
-                follow_up_date: date,
-              });
-            }
-          }}
-        />
-      )}
-      <Text style={styles.label}>Tác dụng phụ</Text>
-      {SIDE_EFFECTS_ENUM.map((effect) => (
-        <View key={effect.value} style={styles.checkboxContainer}>
+
+      {vaccinationList?.vaccination_results?.find(
+        (v) => v.student._id === currentStudent?._id
+      ) ? (
+        // Chế độ chỉ đọc (Xem kết quả)
+        <View>
+          <Text style={styles.label}>Thời gian tiêm</Text>
+          <Text style={styles.input}>
+            {vaccinationData?.vaccinated_at
+              ? moment(vaccinationData.vaccinated_at).format("DD/MM/YYYY")
+              : "Không có thông tin"}
+          </Text>
+
+          <Text style={styles.label}>Người tiêm</Text>
+          <Text style={styles.input}>
+            {vaccinationData?.administered_by || "Không có thông tin"}
+          </Text>
+
+          <Text style={styles.label}>Tên vaccine</Text>
+          <Text style={styles.input}>
+            {vaccinationData?.vaccine_brand || "Không có thông tin"}
+          </Text>
+
+          <Text style={styles.label}>Số lô</Text>
+          <Text style={styles.input}>
+            {vaccinationData?.batch_number || "Không có thông tin"}
+          </Text>
+
+          <Text style={styles.label}>Mũi số</Text>
+          <Text style={styles.input}>
+            {vaccinationData?.dose_number || "Không có thông tin"}
+          </Text>
+
+          <Text style={styles.label}>Hạn sử dụng vaccine</Text>
+          <Text style={styles.input}>
+            {vaccinationData?.follow_up_date
+              ? moment(vaccinationData.follow_up_date).format("DD/MM/YYYY")
+              : "Không có thông tin"}
+          </Text>
+
+          <Text style={styles.label}>Tác dụng phụ</Text>
+          <Text style={styles.input}>
+            {vaccinationData?.side_effects?.length > 0
+              ? vaccinationData.side_effects
+                  .map(
+                    (effect) =>
+                      SIDE_EFFECTS_ENUM.find((e) => e.value === effect)?.label ||
+                      effect
+                  )
+                  .join(", ")
+              : "Không có tác dụng phụ"}
+          </Text>
+
+          <Text style={styles.label}>Cần theo dõi sau tiêm</Text>
+          <Text style={styles.input}>
+            {vaccinationData?.follow_up_required ? "Có" : "Không"}
+          </Text>
+
+          <Text style={styles.label}>Ghi chú</Text>
+          <Text style={[styles.input, { height: 80, textAlignVertical: "top" }]}>
+            {vaccinationData?.notes || "Không có ghi chú"}
+          </Text>
+        </View>
+      ) : (
+        // Chế độ nhập liệu (Ghi nhận tiêm)
+        <View>
+          <Text style={styles.label}>Thời gian tiêm</Text>
           <TouchableOpacity
-            onPress={() => handleSideEffectToggle(effect.value)}
-            style={[
-              styles.checkbox,
-              vaccinationData?.side_effects?.includes(effect.value) &&
-                styles.checkboxSelected,
-            ]}
-            disabled={!!vaccinationList?.vaccinated_students?.find(
+            onPress={() => setShowDatePicker(true)}
+            disabled={!!vaccinationList?.vaccination_results?.find(
               (v) => v.student._id === currentStudent?._id
             )}
           >
-            {vaccinationData?.side_effects?.includes(effect.value) && (
-              <Text style={styles.checkmark}>✓</Text>
-            )}
+            <Text style={styles.input}>
+              {vaccinationData?.vaccinated_at
+                ? moment(vaccinationData.vaccinated_at).format("DD/MM/YYYY")
+                : "Chọn ngày"}
+            </Text>
           </TouchableOpacity>
-          <Text>{effect.label}</Text>
+          {showDatePicker && (
+            <DateTimePicker
+              value={vaccinationData?.vaccinated_at || new Date()}
+              mode="date"
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date) {
+                  setVaccinationData({
+                    ...vaccinationData,
+                    vaccinated_at: date,
+                  });
+                }
+              }}
+            />
+          )}
+
+          <Text style={styles.label}>Người tiêm</Text>
+          <Picker
+            selectedValue={vaccinationData?.administered_by || ""}
+            onValueChange={(value) =>
+              setVaccinationData({
+                ...vaccinationData,
+                administered_by: value,
+              })
+            }
+            style={styles.picker}
+            enabled={
+              !!vaccinationList?.vaccination_results?.find(
+                (v) => v.student._id === currentStudent?._id
+              ) === false
+            }
+          >
+            <Picker.Item label="Chọn người tiêm" value="" />
+            {medicalStaff.map((staff) => (
+              <Picker.Item
+                key={staff._id}
+                label={`${staff.last_name} ${staff.first_name}`}
+                value={`${staff.last_name} ${staff.first_name}`}
+              />
+            ))}
+          </Picker>
+
+          <Text style={styles.label}>Tên vaccine</Text>
+          <TextInput
+            style={styles.input}
+            value={vaccinationData?.vaccine_brand || ""}
+            onChangeText={(text) =>
+              setVaccinationData({ ...vaccinationData, vaccine_brand: text })
+            }
+            placeholder="VD: Gardasil 9"
+            editable={
+              !!vaccinationList?.vaccination_results?.find(
+                (v) => v.student._id === currentStudent?._id
+              ) === false
+            }
+          />
+
+          <Text style={styles.label}>Số lô</Text>
+          <TextInput
+            style={styles.input}
+            value={vaccinationData?.batch_number || ""}
+            onChangeText={(text) =>
+              setVaccinationData({ ...vaccinationData, batch_number: text })
+            }
+            placeholder="VD: LOT001"
+            editable={
+              !!vaccinationList?.vaccination_results?.find(
+                (v) => v.student._id === currentStudent?._id
+              ) === false
+            }
+          />
+
+          <Text style={styles.label}>Mũi số</Text>
+          <Picker
+            selectedValue={vaccinationData?.dose_number || "1"}
+            onValueChange={(value) =>
+              setVaccinationData({ ...vaccinationData, dose_number: value })
+            }
+            style={styles.picker}
+            enabled={
+              !!vaccinationList?.vaccination_results?.find(
+                (v) => v.student._id === currentStudent?._id
+              ) === false
+            }
+          >
+            <Picker.Item label="Mũi 1" value="1" />
+            <Picker.Item label="Mũi 2" value="2" />
+            <Picker.Item label="Mũi 3" value="3" />
+            <Picker.Item label="Mũi nhắc lại" value="4" />
+          </Picker>
+
+          <Text style={styles.label}>Hạn sử dụng vaccine</Text>
+          <TouchableOpacity
+            onPress={() => setShowExpiryDatePicker(true)}
+            disabled={!!vaccinationList?.vaccination_results?.find(
+              (v) => v.student._id === currentStudent?._id
+            )}
+          >
+            <Text style={styles.input}>
+              {vaccinationData?.follow_up_date
+                ? moment(vaccinationData.follow_up_date).format("DD/MM/YYYY")
+                : "Chọn ngày"}
+            </Text>
+          </TouchableOpacity>
+          {showExpiryDatePicker && (
+            <DateTimePicker
+              value={vaccinationData?.follow_up_date || new Date()}
+              mode="date"
+              onChange={(event, date) => {
+                setShowExpiryDatePicker(false);
+                if (date) {
+                  setVaccinationData({
+                    ...vaccinationData,
+                    follow_up_date: date,
+                  });
+                }
+              }}
+            />
+          )}
+
+          <Text style={styles.label}>Tác dụng phụ</Text>
+          {SIDE_EFFECTS_ENUM.map((effect) => (
+            <View key={effect.value} style={styles.checkboxContainer}>
+              <TouchableOpacity
+                onPress={() => handleSideEffectToggle(effect.value)}
+                style={[
+                  styles.checkbox,
+                  vaccinationData?.side_effects?.includes(effect.value) &&
+                    styles.checkboxSelected,
+                ]}
+                disabled={!!vaccinationList?.vaccination_results?.find(
+                  (v) => v.student._id === currentStudent?._id
+                )}
+              >
+                {vaccinationData?.side_effects?.includes(effect.value) && (
+                  <Text style={styles.checkmark}>✓</Text>
+                )}
+              </TouchableOpacity>
+              <Text>{effect.label}</Text>
+            </View>
+          ))}
+
+          <View style={styles.checkboxContainer}>
+            <TouchableOpacity
+              onPress={() =>
+                setVaccinationData({
+                  ...vaccinationData,
+                  follow_up_required: !vaccinationData?.follow_up_required,
+                })
+              }
+              style={[
+                styles.checkbox,
+                vaccinationData?.follow_up_required && styles.checkboxSelected,
+              ]}
+              disabled={!!vaccinationList?.vaccination_results?.find(
+                (v) => v.student._id === currentStudent?._id
+              )}
+            >
+              {vaccinationData?.follow_up_required && (
+                <Text style={styles.checkmark}>✓</Text>
+              )}
+            </TouchableOpacity>
+            <Text>Cần theo dõi sau tiêm</Text>
+          </View>
+
+          <Text style={styles.label}>Ghi chú</Text>
+          <TextInput
+            style={[styles.input, { height: 80 }]}
+            value={vaccinationData?.notes || ""}
+            onChangeText={(text) =>
+              setVaccinationData({ ...vaccinationData, notes: text })
+            }
+            placeholder="Ghi chú thêm..."
+            multiline
+            editable={
+              !!vaccinationList?.vaccination_results?.find(
+                (v) => v.student._id === currentStudent?._id
+              ) === false
+            }
+          />
+
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={handleRecordVaccination}
+            disabled={
+              !vaccinationData?.vaccine_brand ||
+              !vaccinationData?.batch_number ||
+              !vaccinationData?.administered_by ||
+              !!vaccinationList?.vaccination_results?.find(
+                (v) => v.student._id === currentStudent?._id
+              )
+            }
+          >
+            <Text style={styles.submitButtonText}>Lưu kết quả</Text>
+          </TouchableOpacity>
         </View>
-      ))}
-      <View style={styles.checkboxContainer}>
-        <TouchableOpacity
-          onPress={() =>
-            setVaccinationData({
-              ...vaccinationData,
-              follow_up_required: !vaccinationData?.follow_up_required,
-            })
-          }
-          style={[
-            styles.checkbox,
-            vaccinationData?.follow_up_required && styles.checkboxSelected,
-          ]}
-          disabled={!!vaccinationList?.vaccinated_students?.find(
-            (v) => v.student._id === currentStudent?._id
-          )}
-        >
-          {vaccinationData?.follow_up_required && (
-            <Text style={styles.checkmark}>✓</Text>
-          )}
-        </TouchableOpacity>
-        <Text>Cần theo dõi sau tiêm</Text>
-      </View>
-      <Text style={styles.label}>Ghi chú</Text>
-      <TextInput
-        style={[styles.input, { height: 80 }]}
-        value={vaccinationData?.notes || ""}
-        onChangeText={(text) =>
-          setVaccinationData({ ...vaccinationData, notes: text })
-        }
-        placeholder="Ghi chú thêm..."
-        multiline
-        editable={!!vaccinationList?.vaccinated_students?.find(
-          (v) => v.student._id === currentStudent?._id
-        ) === false}
-      />
-      {!vaccinationList?.vaccinated_students?.find(
-        (v) => v.student._id === currentStudent?._id
-      ) && (
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={handleRecordVaccination}
-          disabled={
-            !vaccinationData?.vaccine_brand ||
-            !vaccinationData?.batch_number ||
-            !vaccinationData?.administered_by
-          }
-        >
-          <Text style={styles.submitButtonText}>Lưu kết quả</Text>
-        </TouchableOpacity>
       )}
     </ScrollView>
   </SafeAreaView>
 </Modal>
 
       <Modal
-        visible={followUpModalVisible}
-        animationType="slide"
-        onRequestClose={() => setFollowUpModalVisible(false)}
+  visible={followUpModalVisible}
+  animationType="slide"
+  onRequestClose={() => setFollowUpModalVisible(false)}
+>
+  <SafeAreaView style={styles.modalContainer}>
+    <View style={styles.modalHeader}>
+      <Text style={styles.modalTitle}>Theo dõi sau tiêm</Text>
+      <TouchableOpacity onPress={() => setFollowUpModalVisible(false)}>
+        <Text style={styles.closeButton}>Hủy</Text>
+      </TouchableOpacity>
+    </View>
+    <ScrollView style={styles.modalContent}>
+      <Text style={styles.studentInfo}>
+        Học sinh: {currentStudent?.first_name} {currentStudent?.last_name} - Lớp: {currentStudent?.class_name}
+      </Text>
+      <Text style={styles.label}>Ngày tiêm</Text>
+      <Text style={styles.input}>
+        {moment(vaccinationData?.vaccinated_at).format("DD/MM/YYYY")}
+      </Text>
+      <Text style={styles.label}>Ngày theo dõi</Text>
+      <TouchableOpacity onPress={() => setShowFollowUpDatePicker(true)}>
+        <Text style={styles.input}>
+          {moment(followUpData.follow_up_date).format("DD/MM/YYYY")}
+        </Text>
+      </TouchableOpacity>
+      {showFollowUpDatePicker && (
+        <DateTimePicker
+          value={followUpData.follow_up_date}
+          mode="date"
+          onChange={(event, date) => {
+            setShowFollowUpDatePicker(false);
+            if (date) {
+              setFollowUpData({ ...followUpData, follow_up_date: date });
+            }
+          }}
+        />
+      )}
+      <Text style={styles.label}>Trạng thái</Text>
+      <Picker
+        selectedValue={followUpData.status}
+        onValueChange={(value) =>
+          setFollowUpData({ ...followUpData, status: value })
+        }
+        style={styles.picker}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Theo dõi sau tiêm</Text>
-            <TouchableOpacity onPress={() => setFollowUpModalVisible(false)}>
-              <Text style={styles.closeButton}>Hủy</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.modalContent}>
-            <Text style={styles.studentInfo}>
-              Học sinh: {currentStudent?.first_name} {currentStudent?.last_name}{" "}
-              - Lớp: {currentStudent?.class_name}
-            </Text>
-            <Text style={styles.label}>Ngày tiêm</Text>
-            <Text style={styles.input}>
-              {moment(vaccinationData?.vaccinated_at).format("DD/MM/YYYY")}
-            </Text>
-            <Text style={styles.label}>Ngày theo dõi</Text>
-            <TouchableOpacity onPress={() => setShowFollowUpDatePicker(true)}>
-              <Text style={styles.input}>
-                {moment(followUpData.follow_up_date).format("DD/MM/YYYY")}
-              </Text>
-            </TouchableOpacity>
-            {showFollowUpDatePicker && (
-              <DateTimePicker
-                value={followUpData.follow_up_date}
-                mode="date"
-                onChange={(event, date) => {
-                  setShowFollowUpDatePicker(false);
-                  if (date) {
-                    setFollowUpData({ ...followUpData, follow_up_date: date });
-                  }
-                }}
-              />
-            )}
-            <Text style={styles.label}>Trạng thái</Text>
-            <Picker
-              selectedValue={followUpData.status}
-              onValueChange={(value) =>
-                setFollowUpData({ ...followUpData, status: value })
-              }
-              style={styles.picker}
-            >
-              <Picker.Item label="Bình thường" value="normal" />
-              <Picker.Item label="Phản ứng nhẹ" value="mild_reaction" />
-              <Picker.Item label="Phản ứng vừa" value="moderate_reaction" />
-              <Picker.Item label="Phản ứng nặng" value="severe_reaction" />
-              <Picker.Item label="Hoàn thành theo dõi" value="completed" />
-            </Picker>
-            <Text style={styles.label}>Hành động bổ sung</Text>
-            {[
-              "Dùng thuốc",
-              "Nghỉ ngơi",
-              "Chuyển viện",
-              "Liên hệ phụ huynh",
-              "Tiếp tục theo dõi",
-            ].map((action) => (
-              <View key={action} style={styles.checkboxContainer}>
-                <TouchableOpacity
-                  onPress={() => handleActionToggle(action)}
-                  style={[
-                    styles.checkbox,
-                    followUpData.additional_actions.includes(action) &&
-                      styles.checkboxSelected,
-                  ]}
-                >
-                  {followUpData.additional_actions.includes(action) && (
-                    <Text style={styles.checkmark}>✓</Text>
-                  )}
-                </TouchableOpacity>
-                <Text>{action}</Text>
-              </View>
-            ))}
-            <Text style={styles.label}>Ghi chú theo dõi</Text>
-            <TextInput
-              style={[styles.input, { height: 80 }]}
-              value={followUpData.follow_up_notes}
-              onChangeText={(text) =>
-                setFollowUpData({ ...followUpData, follow_up_notes: text })
-              }
-              placeholder="Ghi chú về tình trạng sau tiêm..."
-              multiline
-            />
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleFollowUp}
-            >
-              <Text style={styles.submitButtonText}>Lưu theo dõi</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </Modal>
+        <Picker.Item label="Bình thường" value="normal" />
+        <Picker.Item label="Phản ứng nhẹ" value="mild_reaction" />
+        <Picker.Item label="Phản ứng vừa" value="moderate_reaction" />
+        <Picker.Item label="Phản ứng nặng" value="severe_reaction" />
+        <Picker.Item label="Hoàn thành theo dõi" value="completed" />
+      </Picker>
+      <Text style={styles.label}>Hành động bổ sung</Text>
+{Object.keys(ACTION_LABELS).map((action) => (
+  <View key={action} style={styles.checkboxContainer}>
+    <TouchableOpacity
+      onPress={() => handleActionToggle(action)}
+      style={[
+        styles.checkbox,
+        followUpData.additional_actions.includes(action) && styles.checkboxSelected,
+      ]}
+    >
+      {followUpData.additional_actions.includes(action) && (
+        <Text style={styles.checkmark}>✓</Text>
+      )}
+    </TouchableOpacity>
+    <Text>{ACTION_LABELS[action]}</Text>
+  </View>
+))}
+      <Text style={styles.label}>Ghi chú theo dõi</Text>
+      <TextInput
+        style={[styles.input, { height: 80 }]}
+        value={followUpData.follow_up_notes}
+        onChangeText={(text) =>
+          setFollowUpData({ ...followUpData, follow_up_notes: text })
+        }
+        placeholder="Ghi chú về tình trạng sau tiêm..."
+        multiline
+      />
+      <TouchableOpacity
+        style={styles.submitButton}
+        onPress={handleFollowUp}
+      >
+        <Text style={styles.submitButtonText}>Lưu theo dõi</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  </SafeAreaView>
+</Modal>
 
       <TouchableOpacity
         style={styles.createButton}

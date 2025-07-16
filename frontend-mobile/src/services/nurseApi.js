@@ -253,25 +253,22 @@ export const nurseAPI = {
   },
 
   updateVaccinationFollowUp: async (resultId, data) => {
-    try {
-      if (!resultId || !data || !data.student_id || !data.vaccination_id) {
-        throw new Error(
-          "Missing required fields: resultId, student_id, or vaccination_id"
-        );
-      }
-
-      const response = await api.put(
-        `/nurse/vaccination-results/${resultId}/follow-up`,
-        data
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Update vaccination follow-up error:", error);
-      throw (
-        error.response?.data || { message: error.message || "Network error" }
-      );
+  try {
+    if (!resultId || !data) {
+      throw new Error("Missing required fields: resultId or data");
     }
-  },
+    const response = await api.put(
+      `/nurse/vaccination-results/${resultId}/follow-up`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Update vaccination follow-up error:", error);
+    throw (
+      error.response?.data || { message: error.message || "Network error" }
+    );
+  }
+},
 
   // Health Check Campaigns
   getHealthCheckCampaigns: async () => {
