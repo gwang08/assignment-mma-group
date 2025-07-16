@@ -287,11 +287,9 @@ const VaccinationScreen = ({ navigation }) => {
       consent_deadline: consentDeadline,
       target_classes,
       instructions,
-      vaccineDetails: {
-        brand: vaccineDetails.brand,
-        batchNumber: vaccineDetails.batchNumber,
-        dosage: vaccineDetails.dosage,
-      },
+     vaccine_brand: vaccineDetails.brand,
+vaccine_batch_number: vaccineDetails.batchNumber,
+vaccine_dosage: vaccineDetails.dosage,
       status,
     };
 
