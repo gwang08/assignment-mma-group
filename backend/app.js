@@ -36,6 +36,7 @@ mongoose
 
     // Initialize admin manager
     await initializeAdmin();
+
   })
   .catch((err) => {
     console.error("❌ MongoDB Connection Error:", err);
@@ -48,7 +49,7 @@ var nurseRouter = require("./routes/nurse");
 var parentRouter = require("./routes/parent"); // Add the parent router
 var authRouter = require("./routes/auth"); // Add the auth router for authentication
 var adminRouter = require("./routes/admin"); // Add the admin router
-var studentRouter = require("./routes/student");
+var studentRouter = require("./routes/student")
 var app = express();
 
 // Configure CORS
@@ -80,7 +81,7 @@ app.use("/nurse", nurseRouter);
 app.use("/parent", parentRouter); // Use the parent router
 app.use("/auth", authRouter); // Add authentication routes
 app.use("/admin", adminRouter); // Use the admin router
-app.use("/student", studentRouter);
+app.use("/student",studentRouter);
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));
