@@ -117,11 +117,14 @@ const ParentCampaigns = () => {
     setIsDetailModalVisible(true);
   };
 
-  const handleSubmitConsent = async (campaign, studentId, consentGiven) => {
+  const handleSubmitConsent = async (campaign, studentId, status) => {
     try {
       const consentData = {
-        consent_given: consentGiven,
-        notes: consentGiven ? "Đồng ý tham gia" : "Không đồng ý tham gia",
+        status,
+        notes:
+          status === CAMPAIGN_CONSENT_STATUS.APPROVED
+            ? "Đồng ý tham gia"
+            : "Không đồng ý tham gia",
       };
 
       const response = await parentsAPI.submitCampaignConsent(
@@ -132,7 +135,9 @@ const ParentCampaigns = () => {
       if (response.success) {
         Alert.alert(
           "Thành công",
-          `Đã ${consentGiven ? "đồng ý" : "từ chối"} tham gia chiến dịch`
+          `Đã ${
+            status === CAMPAIGN_CONSENT_STATUS.APPROVED ? "đồng ý" : "từ chối"
+          } tham gia chiến dịch`
         );
         loadData();
       } else {
@@ -191,14 +196,26 @@ const ParentCampaigns = () => {
               <View style={styles.consentButtons}>
                 <TouchableOpacity
                   style={[styles.consentButton, styles.acceptButton]}
-                  onPress={() => handleSubmitConsent(item, student._id, true)}
+                  onPress={() =>
+                    handleSubmitConsent(
+                      item,
+                      student._id,
+                      CAMPAIGN_CONSENT_STATUS.APPROVED
+                    )
+                  }
                 >
                   <Ionicons name="checkmark" size={16} color="white" />
                   <Text style={styles.consentButtonText}>Đồng ý</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.consentButton, styles.rejectButton]}
-                  onPress={() => handleSubmitConsent(item, student._id, false)}
+                  onPress={() =>
+                    handleSubmitConsent(
+                      item,
+                      student._id,
+                      CAMPAIGN_CONSENT_STATUS.DECLINED
+                    )
+                  }
                 >
                   <Ionicons name="close" size={16} color="white" />
                   <Text style={styles.consentButtonText}>Từ chối</Text>
@@ -383,6 +400,12 @@ const ParentCampaigns = () => {
       </Modal>
     </View>
   );
+};
+
+const CAMPAIGN_CONSENT_STATUS = {
+  PENDING: "Pending",
+  APPROVED: "Approved",
+  DECLINED: "Declined",
 };
 
 const styles = StyleSheet.create({

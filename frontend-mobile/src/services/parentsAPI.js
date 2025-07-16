@@ -159,8 +159,8 @@ export const parentsAPI = {
   // Campaign Consent
   submitCampaignConsent: async (campaignId, studentId, consentData) => {
     try {
-      const response = await api.post(
-        `/parent/campaigns/${campaignId}/students/${studentId}/consent`,
+      const response = await api.put(
+        `/parent/students/${studentId}/campaigns/${campaignId}/consent`,
         consentData
       );
       return response.data;
