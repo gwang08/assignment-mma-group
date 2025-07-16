@@ -23,6 +23,7 @@ const ParentDashboard = ({ navigation }) => {
   const [medicineRequests, setMedicineRequests] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [consultations, setConsultations] = useState([]);
+  const [medicalEvents, setMedicalEvents] = useState([]);
 
   // Modal states for medicine request functionality
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -91,6 +92,33 @@ const ParentDashboard = ({ navigation }) => {
       if (studentsResponse.success && studentsResponse.data) {
         const studentData = studentsResponse.data.map((item) => item.student);
         setStudents(studentData);
+
+        // Load medical events for all students
+        const allMedicalEvents = [];
+        for (const item of studentsResponse.data) {
+          try {
+            const eventsResponse = await parentsAPI.getStudentMedicalEvents(
+              item.student._id
+            );
+            if (eventsResponse.success && eventsResponse.data) {
+              const eventsWithStudent = eventsResponse.data.map((event) => ({
+                ...event,
+                studentInfo: item.student,
+              }));
+              allMedicalEvents.push(...eventsWithStudent);
+            }
+          } catch (error) {
+            console.warn(
+              `Failed to load medical events for student ${item.student._id}:`,
+              error
+            );
+          }
+        }
+        setMedicalEvents(
+          allMedicalEvents.sort(
+            (a, b) => new Date(b.occurred_at) - new Date(a.occurred_at)
+          )
+        );
       }
 
       if (requestsResponse.success && requestsResponse.data) {
@@ -257,6 +285,84 @@ const ParentDashboard = ({ navigation }) => {
   const handleConsultationPress = (consultation) => {
     setSelectedConsultation(consultation);
     setIsConsultationDetailModalVisible(true);
+  };
+
+  // Medical Events helper functions
+  const getEventTypeIcon = (eventType) => {
+    const icons = {
+      injury: "bandage",
+      illness: "thermometer",
+      allergy: "warning",
+      medication: "medical",
+      emergency: "alert-circle",
+      checkup: "heart",
+      other: "clipboard",
+    };
+    return icons[eventType?.toLowerCase()] || "clipboard";
+  };
+
+  const getEventTypeText = (eventType) => {
+    const typeText = {
+      injury: "Chấn thương",
+      illness: "Bệnh tật",
+      allergy: "Dị ứng",
+      medication: "Thuốc",
+      emergency: "Cấp cứu",
+      checkup: "Khám sức khỏe",
+      other: "Khác",
+    };
+    return typeText[eventType?.toLowerCase()] || eventType;
+  };
+
+  const getEventSeverityColor = (severity) => {
+    const severityColors = {
+      low: "#2ecc71", // Green - Safe/Minor
+      medium: "#f39c12", // Orange - Caution
+      high: "#e74c3c", // Red - Warning
+      emergency: "#9b59b6", // Purple - Emergency
+    };
+    return severityColors[severity?.toLowerCase()] || "#95a5a6"; // Default gray
+  };
+
+  const getEventSeverityText = (severity) => {
+    const severityTexts = {
+      low: "Nhẹ",
+      medium: "Trung bình",
+      high: "Nặng",
+      emergency: "Cấp cứu",
+    };
+    return severityTexts[severity?.toLowerCase()] || severity;
+  };
+
+  const getEventStatusColor = (status) => {
+    const statusColors = {
+      open: "#f39c12",
+      resolved: "#27ae60",
+      followup_required: "#e74c3c",
+    };
+    return statusColors[status?.toLowerCase()] || "#95a5a6";
+  };
+
+  const getEventStatusText = (status) => {
+    const statusTexts = {
+      open: "Đang xử lý",
+      resolved: "Đã giải quyết",
+      followup_required: "Cần theo dõi",
+    };
+    return statusTexts[status?.toLowerCase()] || status;
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "Chưa có thông tin";
+    const date = new Date(dateString);
+    return (
+      date.toLocaleDateString("vi-VN") +
+      " " +
+      date.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    );
   };
 
   // Medicine request modal helper functions
@@ -680,10 +786,10 @@ const ParentDashboard = ({ navigation }) => {
             onPress={() => navigation.navigate("Campaigns")}
           />
           <DashboardCard
-            title="Liên kết học sinh"
-            icon="link"
-            backgroundColor="#9b59b6"
-            onPress={() => navigation.navigate("StudentLinkRequests")}
+            title="Sự cố y tế"
+            icon="warning"
+            backgroundColor="#38c5beff"
+            onPress={() => navigation.navigate("MedicalEvents")}
           />
         </View>
       </View>
@@ -832,6 +938,81 @@ const ParentDashboard = ({ navigation }) => {
           <Text style={styles.emptyText}>
             Không có chiến dịch nào đang diễn ra
           </Text>
+        )}
+      </View>
+
+      {/* Recent Medical Events */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Sự cố y tế gần đây</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("MedicalEvents")}
+          >
+            <Text style={styles.seeAllText}>Xem tất cả</Text>
+          </TouchableOpacity>
+        </View>
+        {medicalEvents.slice(0, 3).map((event, index) => (
+          <View key={event._id || index} style={styles.eventCard}>
+            <View style={styles.eventHeader}>
+              <View style={styles.eventInfo}>
+                <View style={styles.eventTitleRow}>
+                  <Ionicons
+                    name={getEventTypeIcon(event.event_type)}
+                    size={16}
+                    color={getEventSeverityColor(event.severity)}
+                    style={styles.eventIcon}
+                  />
+                  <Text style={styles.eventType}>
+                    {getEventTypeText(event.event_type)}
+                  </Text>
+                  <View
+                    style={[
+                      styles.severityBadge,
+                      {
+                        backgroundColor: getEventSeverityColor(event.severity),
+                      },
+                    ]}
+                  >
+                    <Text style={styles.severityText}>
+                      {getEventSeverityText(event.severity)}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.eventStudent}>
+                  {event.studentInfo
+                    ? `${event.studentInfo.first_name} ${event.studentInfo.last_name}`
+                    : "Học sinh không xác định"}
+                </Text>
+                <Text style={styles.eventDescription} numberOfLines={2}>
+                  {event.description}
+                </Text>
+                <Text style={styles.eventDate}>
+                  {formatDateTime(event.occurred_at)}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: getEventStatusColor(event.status) },
+                ]}
+              >
+                <Text style={styles.statusText}>
+                  {getEventStatusText(event.status)}
+                </Text>
+              </View>
+            </View>
+            {event.symptoms && event.symptoms.length > 0 && (
+              <View style={styles.symptomsContainer}>
+                <Text style={styles.symptomsLabel}>Triệu chứng:</Text>
+                <Text style={styles.symptomsText}>
+                  {event.symptoms.join(", ")}
+                </Text>
+              </View>
+            )}
+          </View>
+        ))}
+        {medicalEvents.length === 0 && (
+          <Text style={styles.emptyText}>Chưa có sự kiện y tế nào</Text>
         )}
       </View>
 
@@ -1250,6 +1431,85 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 10,
     fontWeight: "bold",
+  },
+
+  // Medical Events Styles
+  eventCard: {
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  eventHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  eventInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  eventTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  eventIcon: {
+    marginRight: 6,
+  },
+  eventType: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.text,
+    flex: 1,
+  },
+  severityBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  severityText: {
+    color: "white",
+    fontSize: 9,
+    fontWeight: "bold",
+  },
+  eventStudent: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  eventDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  eventDate: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  symptomsContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  symptomsLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: colors.text,
+    marginBottom: 2,
+  },
+  symptomsText: {
+    fontSize: 11,
+    color: colors.textSecondary,
   },
 });
 
