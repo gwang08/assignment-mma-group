@@ -386,12 +386,11 @@ exports.getCampaigns = async (req, res) => {
     // 3. Target all classes (empty array, "All", null, or undefined)
     const campaigns = await Campaign.find({
       $and: [
-        { status: { $in: ["active", "draft"] } }, // Show active and draft campaigns
+        { status: { $ne: "draft" } }, // Show active and draft campaigns
         {
           $or: [
             { target_classes: { $in: classNames } },
             { target_classes: "All" },
-            { target_students: { $in: studentIds } },
             { target_classes: { $size: 0 } }, // Empty array means all classes
             { target_classes: { $exists: false } }, // Handle case where target_classes doesn't exist
             { target_classes: null }, // Handle case where target_classes is null

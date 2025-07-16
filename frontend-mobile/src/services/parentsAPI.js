@@ -183,6 +183,19 @@ export const parentsAPI = {
     }
   },
 
+  // Campaign Results
+  getCampaignResults: async (studentId) => {
+    try {
+      const response = await api.get(
+        `/parent/students/${studentId}/campaign-results`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Get campaign results error:", error);
+      throw error.response?.data || { message: "Network error" };
+    }
+  },
+
   // Consultations
   getConsultationSchedules: async () => {
     try {
