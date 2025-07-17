@@ -1183,6 +1183,8 @@ const HealthCheckScreen = ({ navigation }) => {
         key={campaign._id || index}
         campaign={campaign}
         onPress={handleViewCampaign}
+        onAddResult={handleAddResult}
+        onScheduleConsultation={handleViewConsultationSchedules}
       />
     ))
   )}
