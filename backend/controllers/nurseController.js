@@ -1507,25 +1507,33 @@ class NurseController {
   }
 
   static async getConsultationSchedules(req, res, next) {
-    try {
-      const schedules = await ConsultationSchedule.find()
-        .populate({
-          path: "campaignResult",
-          populate: {
-            path: "campaign",
-            select: "title campaign_type",
-          },
-        })
-        .populate("student", "first_name last_name class_name")
-        .populate("attending_parent", "first_name last_name email phone_number") // <-- thêm dòng này
-        .sort({ scheduledDate: 1 });
+  try {
+    const schedules = await ConsultationSchedule.find()
+      .populate({
+        path: "campaignResult",
+        populate: {
+          path: "campaign",
+          select: "title campaign_type",
+        },
+      })
+      .populate("student", "first_name last_name class_name")
+      .populate("attending_parent", "first_name last_name email phone_number")
+      .sort({ scheduledDate: 1 });
 
-      res.json(schedules);
-    } catch (error) {
-      console.error("Error fetching consultation schedules:", error);
-      res.status(500).json({ error: "Failed to fetch consultation schedules" });
-    }
+    // Lọc bỏ các lịch có campaignResult là null
+    const validSchedules = schedules.filter(
+      (schedule) => schedule.campaignResult !== null
+    );
+
+    res.json({
+      success: true,
+      data: validSchedules,
+    });
+  } catch (error) {
+    console.error("Error fetching consultation schedules:", error);
+    res.status(500).json({ error: "Failed to fetch consultation schedules" });
   }
+}
 
   static async checkConsultationOverlap(req, res, next) {
     try {
