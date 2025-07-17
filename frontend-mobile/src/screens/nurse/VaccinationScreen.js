@@ -71,6 +71,7 @@ const VaccinationScreen = ({ navigation }) => {
   const [vaccinationList, setVaccinationList] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(null);
   const [followUpModalVisible, setFollowUpModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [followUpData, setFollowUpData] = useState({
     follow_up_date: new Date(),
     status: "normal",
@@ -109,6 +110,9 @@ const VaccinationScreen = ({ navigation }) => {
   setFollowUpModalVisible(true);
 };
 
+const filteredCampaigns = campaigns.filter((campaign) =>
+  campaign.title.toLowerCase().includes(searchQuery.toLowerCase())
+);
 
   const handleFollowUp = async () => {
   if (!currentStudent || !vaccinationData || !selectedCampaignDetails) {
@@ -138,6 +142,8 @@ const VaccinationScreen = ({ navigation }) => {
     additional_actions: followUpData.additional_actions,
     follow_up_notes: followUpData.follow_up_notes,
   };
+
+  
 
   console.log("Submitting follow-up payload:", JSON.stringify(payload, null, 2));
   console.log("resultId:", vaccinationRecord._id);
@@ -898,24 +904,32 @@ vaccine_dosage: vaccineDetails.dosage,
         }
       >
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{campaigns.length}</Text>
-            <Text style={styles.statLabel}>Tổng Chiến Dịch</Text>
-          </View>
-        </View>
+  <View style={styles.statCard}>
+    <Text style={styles.statNumber}>{filteredCampaigns.length}</Text>
+    <Text style={styles.statLabel}>Tổng Chiến Dịch</Text>
+  </View>
+  <View style={styles.searchContainer}>
+    <TextInput
+      style={styles.searchInput}
+      placeholder="Tìm kiếm chiến dịch..."
+      value={searchQuery}
+      onChangeText={setSearchQuery}
+    />
+  </View>
+</View>
         <View style={styles.campaignsContainer}>
-          {campaigns.length === 0 ? (
-            <EmptyState message="Không có chiến dịch tiêm chủng nào" />
-          ) : (
-            campaigns.map((campaign, index) => (
-              <VaccinationCampaignCard
-                key={campaign._id || index}
-                campaign={campaign}
-                onPress={handleViewCampaign}
-              />
-            ))
-          )}
-        </View>
+  {filteredCampaigns.length === 0 ? (
+    <EmptyState message="Không tìm thấy chiến dịch tiêm chủng" />
+  ) : (
+    filteredCampaigns.map((campaign, index) => (
+      <VaccinationCampaignCard
+        key={campaign._id || index}
+        campaign={campaign}
+        onPress={handleViewCampaign}
+      />
+    ))
+  )}
+</View>
       </ScrollView>
       <ModalForm
         visible={modalVisible}
@@ -2593,6 +2607,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  searchContainer: {
+  flex: 1,
+  justifyContent: "center",
+},
+searchInput: {
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 8,
+  padding: 10,
+  fontSize: 14,
+  backgroundColor: colors.surface,
+},
 });
 
 export default VaccinationScreen;
