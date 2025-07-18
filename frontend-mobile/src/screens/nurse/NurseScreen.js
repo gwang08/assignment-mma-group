@@ -97,7 +97,7 @@ const NurseScreen = () => {
   const functionCards = [
     {
       id: "medical-events",
-      title: "Sự Kiện Y Tế",
+      title: "Sự Cố Y Tế",
       description: "Quản lý các sự kiện y tế như tai nạn, sốt, chấn thương",
       icon: "🏥",
       count: dashboardData?.dashboardStats?.activeEvents || 0,
